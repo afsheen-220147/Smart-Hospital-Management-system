@@ -21,3 +21,4 @@ router.get('/:id', getDoctor);
 router.put('/:id', protect, authorize('doctor', 'admin'), updateDoctor);
 
 module.exports = router;
+// 

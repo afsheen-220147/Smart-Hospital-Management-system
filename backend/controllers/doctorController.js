@@ -102,3 +102,4 @@ exports.updateDoctor = asyncHandler(async (req, res, next) => {
     data: doctor
   });
 });
+// 
