@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   Calendar, Clock, User, CheckCircle, ChevronRight, Check, AlertCircle, 
-  Activity, Star, MessageSquare, Users, Bell, Loader2, RefreshCw 
+  Activity, Star, MessageSquare, Users, Bell, Loader2 
 } from 'lucide-react'
 import api from '../../services/api'
 import { showSuccess, showError, showInfo } from '../../utils/toast'
