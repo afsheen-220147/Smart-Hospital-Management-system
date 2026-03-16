@@ -1,31 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin } from 'lucide-react'
+import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { showError } from '../../utils/toast'
 
 export default function Appointments() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [reportModal, setReportModal] = useState(null) // holds appointment data for the modal
   const [reportRecords, setReportRecords] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
-
-  const handleSwitchType = async (app) => {
-    if (String(app._id).startsWith('d')) return // demo data — skip
-    const newType = (app.consultationType === 'online') ? 'in-person' : 'online'
-    try {
-      await api.put(`/appointments/${app._id}`, { consultationType: newType })
-      setAppointments(prev => prev.map(a => a._id === app._id ? { ...a, consultationType: newType } : a))
-    } catch (err) {
-      console.error('Failed to switch consultation type:', err)
-      showError('Could not change consultation type. Please try again.')
-    }
-  }
 
   const handleCancel = async (id) => {
     if (String(id).startsWith('d')) {
@@ -136,7 +122,7 @@ export default function Appointments() {
         </div>
       </div>
 
-      <div className="flex gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-xl w-fit border border-gray-100 dark:border-gray-700 shadow-sm overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 bg-white p-1.5 rounded-xl w-fit border border-gray-100 shadow-sm overflow-x-auto no-scrollbar">
         {['All', 'Upcoming', 'Completed', 'Cancelled'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${filter === f ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
@@ -176,14 +162,8 @@ export default function Appointments() {
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Clock size={16} className="text-gray-400" /> <span className="font-medium">{app.timeSlot}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                {(app.consultationType === 'online' || app.type === 'Online Call')
-                  ? <><Video size={16} className="text-blue-500" /><span className="font-semibold text-blue-600">Online Video Call</span></>
-                  : <><MapPin size={16} className="text-purple-500" /><span className="font-semibold text-purple-600">In-Person Visit</span></>
-                }
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="font-medium text-gray-400">Reason:</span>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                {app.type === 'Online Call' ? <Video size={16} className="text-blue-500" /> : <User size={16} className="text-purple-500" />}
                 <span className="font-medium">{app.reason}</span>
               </div>
             </div>
@@ -191,34 +171,18 @@ export default function Appointments() {
             <div className="pt-4 border-t border-gray-100 flex gap-2">
               {(app.status === 'pending' || app.status === 'confirmed') && (
                 <>
-                  {(app.consultationType === 'online' || app.type === 'Online Call') ? (
-                    <button
-                      onClick={() => navigate(`/video-room/${app._id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all">
-                      <Video size={14} /> Join Video Call
-                    </button>
-                  ) : (
-                    <button className="flex-1 btn-primary py-2 text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-default">
-                      <CheckCircle size={14} /> Confirmed
-                    </button>
-                  )}
-                  <button
+                  <button className="flex-1 btn-primary py-2 text-xs flex items-center justify-center gap-1.5 shadow-sm">
+                    {app.type === 'Online Call' ? <><Video size={14} /> Join Call</> : <><CheckCircle size={14} /> Confirmed</>}
+                  </button>
+                  <button 
                     onClick={() => handleCancel(app._id)}
                     className="flex-1 px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-xl text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-1">
                     <XCircle size={14} /> Cancel
                   </button>
-                  {!String(app._id).startsWith('d') && (
-                    <button
-                      onClick={() => handleSwitchType(app)}
-                      title={(app.consultationType === 'online') ? 'Switch to In-Person Visit' : 'Switch to Online Video Call'}
-                      className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors">
-                      {(app.consultationType === 'online') ? <MapPin size={14} /> : <Video size={14} />}
-                    </button>
-                  )}
                 </>
               )}
               {app.status === 'completed' && (
-                <button
+                <button 
                   onClick={() => handleViewReport(app)}
                   className="flex-1 btn-secondary py-2 text-xs flex items-center justify-center gap-1.5 hover:bg-blue-600 hover:text-white transition-all">
                   <FileText size={14} /> View Report
@@ -229,7 +193,7 @@ export default function Appointments() {
         ))}
 
         {filtered.length === 0 && (
-          <div className="col-span-full py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
+          <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-gray-300">
             <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-bold text-gray-900 mb-1">No appointments found</h3>
             <p className="text-gray-500 text-sm mb-4">You have no {filter.toLowerCase()} appointments.</p>
@@ -241,7 +205,7 @@ export default function Appointments() {
       {/* View Report Modal */}
       {reportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100">
             {/* Modal Header */}
             <div className="flex items-start justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
               <div>
@@ -315,7 +279,7 @@ export default function Appointments() {
                                 By Dr. {record.doctor?.user?.name || record.doctor?.name || 'Staff'} • {new Date(record.createdAt).toLocaleDateString()}
                               </p>
                               {record.description && (
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 bg-white dark:bg-gray-700 p-2 rounded-lg border border-gray-100 dark:border-gray-600">{record.description}</p>
+                                <p className="text-xs text-gray-600 mt-2 bg-white p-2 rounded-lg border border-gray-100">{record.description}</p>
                               )}
                             </div>
                           </div>

@@ -88,7 +88,7 @@ export default function VisitHistory() {
               placeholder="Search visits..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
             />
           </div>
           <button className="btn-secondary flex items-center gap-2 whitespace-nowrap">
@@ -198,7 +198,7 @@ export default function VisitHistory() {
               </div>
             ))
           ) : (
-            <div className="py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
+            <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-gray-300">
               <Activity size={48} className="mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-bold text-gray-900 mb-1">No history found</h3>
               <p className="text-gray-500 text-sm">{searchQuery ? `No visits matching "${searchQuery}"` : "You haven't had any completed medical visits yet."}</p>

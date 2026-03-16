@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Activity, Save, Key, UserCircle, Edit3, HeartPulse, CheckCircle, Calendar } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Activity, Save, UserCircle, Edit3, HeartPulse, CheckCircle, Calendar } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { showSuccess, showError, getErrorMessage } from '../../utils/toast'
@@ -207,7 +207,7 @@ export default function Profile() {
               <HeartPulse size={48} className="absolute -right-4 -bottom-4 text-red-100/50 group-hover:scale-110 transition-transform" />
               <label className="text-xs font-bold uppercase text-red-600 block mb-1">Blood</label>
               {editing ? (
-                <select className="w-full bg-white dark:bg-gray-700 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 block p-2" value={profile.bloodGroup} onChange={e => setProfile({ ...profile, bloodGroup: e.target.value })}>
+                <select className="w-full bg-white border border-red-200 text-red-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 block p-2" value={profile.bloodGroup} onChange={e => setProfile({ ...profile, bloodGroup: e.target.value })}>
                   <option value="">Select</option>
                   <option>A+</option><option>B+</option><option>O+</option><option>AB+</option><option>A-</option><option>B-</option><option>O-</option><option>AB-</option>
                 </select>
@@ -221,7 +221,7 @@ export default function Profile() {
               <Activity size={48} className="absolute -right-4 -bottom-4 text-blue-100/50 group-hover:scale-110 transition-transform" />
               <label className="text-xs font-bold uppercase text-blue-600 block mb-1 flex items-center gap-1">Weight <span className="text-[10px] font-normal lowercase opacity-70">(kg)</span></label>
               {editing ? (
-                <input type="number" className="w-full bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2" value={profile.weight} onChange={e => setProfile({ ...profile, weight: e.target.value })} />
+                <input type="number" className="w-full bg-white border border-blue-200 text-blue-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2" value={profile.weight} onChange={e => setProfile({ ...profile, weight: e.target.value })} />
               ) : (
                 <p className="text-2xl font-extrabold text-blue-700">{profile.weight || '--'} <span className="text-sm font-semibold opacity-70">kg</span></p>
               )}
@@ -232,7 +232,7 @@ export default function Profile() {
               <Activity size={48} className="absolute -right-4 -bottom-4 text-emerald-100/50 group-hover:scale-110 transition-transform" />
               <label className="text-xs font-bold uppercase text-emerald-600 block mb-1 flex items-center gap-1">Height <span className="text-[10px] font-normal lowercase opacity-70">(cm)</span></label>
               {editing ? (
-                <input type="number" className="w-full bg-white dark:bg-gray-700 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2" value={profile.height} onChange={e => setProfile({ ...profile, height: e.target.value })} />
+                <input type="number" className="w-full bg-white border border-emerald-200 text-emerald-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2" value={profile.height} onChange={e => setProfile({ ...profile, height: e.target.value })} />
               ) : (
                 <p className="text-2xl font-extrabold text-emerald-700">{profile.height || '--'} <span className="text-sm font-semibold opacity-70">cm</span></p>
               )}
@@ -243,7 +243,7 @@ export default function Profile() {
               <Phone size={48} className="absolute -right-4 -bottom-4 text-orange-100/50 group-hover:scale-110 transition-transform" />
               <label className="text-xs font-bold uppercase text-orange-600 block mb-1 leading-tight">Emergency</label>
               {editing ? (
-                <input type="tel" className="w-full bg-white dark:bg-gray-700 border border-orange-200 dark:border-orange-700 text-orange-900 dark:text-orange-200 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2" value={profile.emergencyContact} onChange={e => setProfile({ ...profile, emergencyContact: e.target.value })} />
+                <input type="tel" className="w-full bg-white border border-orange-200 text-orange-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2" value={profile.emergencyContact} onChange={e => setProfile({ ...profile, emergencyContact: e.target.value })} />
               ) : (
                 <p className="text-lg font-extrabold text-orange-700 tracking-tight truncate px-1">{profile.emergencyContact || 'None'}</p>
               )}
