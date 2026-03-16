@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calendar, User, FileText, Bot, Clock, ArrowRight, ShieldCheck, HeartPulse, Activity } from 'lucide-react'
+import { Calendar, User, FileText, Bot, Clock, ArrowRight, ShieldCheck, HeartPulse } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { showError } from '../../utils/toast'
@@ -14,6 +14,12 @@ export default function PatientDashboard() {
 
   // Demo User Check
   const isDemoUser = user?.email === 'john@example.com' || user?.email === 'jane@example.com'
+  const patientId = user?._id || user?.id
+
+  const getDoctorName = (doctor) => {
+    if (!doctor) return 'Staff'
+    return doctor.user?.name || doctor.name || 'Staff'
+  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -24,11 +30,11 @@ export default function PatientDashboard() {
         let realVisits = []
 
         // Fetch real data regardless of demo status (to show newly booked items)
-        if (user?._id || user?.id) {
+        if (patientId) {
           try {
             const [apptRes, visitsRes, profileRes] = await Promise.all([
-               api.get(`/appointments/patient/${user._id || user.id}`),
-               api.get('/visits'),
+               api.get(`/appointments/patient/${patientId}`),
+               api.get(`/visits/patient/${patientId}`).catch(() => api.get('/visits')),
                api.get('/patients/me')
             ])
 
@@ -78,10 +84,10 @@ export default function PatientDashboard() {
       }
     }
 
-    if (user?._id || user?.id || isDemoUser) {
+    if (patientId || isDemoUser) {
       fetchDashboardData()
     }
-  }, [user, isDemoUser])
+  }, [patientId, isDemoUser])
 
   const stats = [
     { label: 'Upcoming Appts', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -204,7 +210,7 @@ export default function PatientDashboard() {
                     visits.map((v, i) => (
                       <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                         <td className="table-td py-3 px-5 text-gray-500 font-medium">{new Date(v.createdAt).toLocaleDateString()}</td>
-                        <td className="table-td py-3 px-5 font-semibold text-gray-900">Dr. {v.doctor?.name || 'Staff'}</td>
+                        <td className="table-td py-3 px-5 font-semibold text-gray-900">Dr. {getDoctorName(v.doctor)}</td>
                         <td className="table-td py-3 px-5 text-gray-600">{v.title}</td>
                         <td className="table-td py-3 px-5">
                           <Link to="/patient/history" className="text-blue-600 font-bold hover:underline text-xs">View Report</Link>
@@ -259,24 +265,3 @@ export default function PatientDashboard() {
     </div>
   )
 }
-
-function Mail({ size, className }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-    </svg>
-  );
-}
-
-

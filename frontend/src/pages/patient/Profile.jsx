@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Activity, Save, Key, UserCircle, Edit3, HeartPulse, CheckCircle, Calendar } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Activity, Save, UserCircle, Edit3, HeartPulse, CheckCircle, Calendar } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { showSuccess, showError, getErrorMessage } from '../../utils/toast'
