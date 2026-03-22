@@ -138,10 +138,3 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
     },
   });
 });
-
-
-
-//implemented analytics endpoints
-//Endpoint = a URL where an API receives requests and sends back data.
-
-//Code for csv export for reports has been written
