@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { HeartPulse } from 'lucide-react'
@@ -10,6 +10,14 @@ export default function PublicLayout() {
   const { user } = useAuth()
   const { pathname } = useLocation()
 
+  // Always reset scroll lock when navigating to any public page
+  // This prevents Home.jsx's overflow:hidden from persisting to Register, Login etc.
+  useEffect(() => {
+    if (pathname !== '/') {
+      document.body.style.overflow = 'auto';
+    }
+  }, [pathname]);
+
   // Redirect logged-in users away from the home/auth pages to their dashboard
   if (user && REDIRECT_PATHS.includes(pathname)) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />
@@ -18,7 +26,7 @@ export default function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-primary, #F5F1EC)' }}>
       <Navbar />
       <main className="flex-1">
         <Outlet />

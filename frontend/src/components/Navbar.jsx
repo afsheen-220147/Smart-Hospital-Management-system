@@ -1,14 +1,25 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { HeartPulse, Menu, X, Bell, LogOut, ChevronDown } from 'lucide-react'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const handleLogout = () => { logout(); navigate('/') }
+
+  const navLinks = [['/', 'Home'], ['/doctors', 'Doctors'], ['/about', 'About']]
+
+  // Returns Tailwind classes for active vs. inactive nav items
+  const navClass = (to) =>
+    `px-3 py-2 text-sm font-medium rounded-[10px] transition-all duration-200 ${
+      pathname === to
+        ? 'bg-[#EAE4DD] text-[#2B2B2B]'
+        : 'text-gray-600 hover:bg-[#F0EBE5] hover:text-[#2B2B2B]'
+    }`
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50" style={{ height: '70px' }}>
@@ -28,8 +39,8 @@ export default function Navbar() {
         {/* Desktop Nav — public */}
         {!user && (
           <nav className="hidden md:flex items-center gap-1">
-            {[['/', 'Home'], ['/doctors', 'Doctors'], ['/about', 'About']].map(([to, label]) => (
-              <Link key={to} to={to} className="px-3 py-2 text-sm text-gray-600 hover:text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-all">
+            {navLinks.map(([to, label]) => (
+              <Link key={to} to={to} className={navClass(to)}>
                 {label}
               </Link>
             ))}
@@ -79,8 +90,8 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && !user && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 space-y-1 shadow-lg">
-          {[['/', 'Home'], ['/doctors', 'Doctors'], ['/about', 'About']].map(([to, label]) => (
-            <Link key={to} to={to} onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg">
+          {navLinks.map(([to, label]) => (
+            <Link key={to} to={to} onClick={() => setMenuOpen(false)} className={`block ${navClass(to)}`}>
               {label}
             </Link>
           ))}

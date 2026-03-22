@@ -11,7 +11,8 @@ const {
   googleRegister,
   forgotPassword,
   verifyOtp,
-  resetPassword
+  resetPassword,
+  checkDoctorEmail
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -30,5 +31,6 @@ router.post('/verify-otp', verifyOtp);
 router.post('/reset-password', resetPassword);
 router.get('/logout', logout);
 router.get('/me', protect, getMe);
+router.get('/check-doctor-email', checkDoctorEmail);
 
 module.exports = router;
