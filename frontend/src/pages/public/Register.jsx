@@ -111,12 +111,22 @@ export default function Register() {
     }
   }
 
-  const handleGoogleRoleSelect = (role) => {
+  const handleGoogleRoleSelect = async (role) => {
     if (role === 'doctor' && googleUser) {
-      if (!googleUser.email.toLowerCase().endsWith(INSTITUTE_DOMAIN)) {
-        showWarning('This email is not authorized to register as a doctor. Only @rguktn.ac.in emails are allowed.')
+      setLoading(true)
+      try {
+        const res = await api.get(`/auth/check-doctor-email?email=${encodeURIComponent(googleUser.email)}`)
+        if (!res.data.authorized) {
+          showError(res.data.message || 'This email is not authorized to register as a doctor.')
+          setLoading(false)
+          return
+        }
+      } catch {
+        showError('This email is not authorized to register as a doctor.')
+        setLoading(false)
         return
       }
+      setLoading(false)
     }
     setSelectedRole(role)
     setFieldErrors({})
@@ -165,8 +175,11 @@ export default function Register() {
       setEmailStep(2)
     } catch (err) {
       const msg = getErrorMessage(err, 'Failed to send OTP.')
-      // Show inline for email-specific errors
-      if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('account already')) {
+      // Authorization errors (wrong role, not approved by admin) → always show as toast
+      if (msg.toLowerCase().includes('not authorized') || msg.toLowerCase().includes('authorized to register')) {
+        showError(msg)
+      // Duplicate email errors → show inline under the email field
+      } else if (msg.toLowerCase().includes('account already') || msg.toLowerCase().includes('already exists')) {
         setFieldErrors({ email: msg })
       } else {
         showError(msg)
