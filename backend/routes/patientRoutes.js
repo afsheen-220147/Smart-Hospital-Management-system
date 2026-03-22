@@ -3,7 +3,8 @@ const {
   getPatients,
   getPatient,
   updatePatientProfile,
-  getMyProfile
+  getMyProfile,
+  deletePatient
 } = require('../controllers/patientController');
 
 const router = express.Router();
@@ -19,6 +20,6 @@ router
   .post(updatePatientProfile);
 
 router.route('/me').get(getMyProfile);
-router.route('/:id').get(getPatient);
+router.route('/:id').get(getPatient).delete(authorize('admin'), deletePatient);
 
 module.exports = router;

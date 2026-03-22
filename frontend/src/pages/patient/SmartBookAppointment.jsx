@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { 
   Calendar, Clock, User, CheckCircle, ChevronRight, Check, AlertCircle, 
-  Activity, Star, MessageSquare, Users, Bell, Loader2 
+  Activity, Star, MessageSquare, Users, Bell, Loader2, RefreshCw, Video, MapPin
 } from 'lucide-react'
 import api from '../../services/api'
 import { showSuccess, showError, showInfo } from '../../utils/toast'
@@ -17,6 +17,7 @@ const VISIT_TYPES = [
 
 export default function SmartBookAppointment() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [step, setStep] = useState(1)
   
   // Doctor selection
@@ -36,6 +37,7 @@ export default function SmartBookAppointment() {
   
   // Booking details
   const [medicalNotes, setMedicalNotes] = useState('')
+  const [consultationType, setConsultationType] = useState('in-person')
   const [bookingLoading, setBookingLoading] = useState(false)
   const [noShowPrediction, setNoShowPrediction] = useState(null)
   
@@ -65,6 +67,30 @@ export default function SmartBookAppointment() {
     }
     fetchDoctors()
   }, [])
+
+  // Pre-fill consultation type from URL param on mount
+  useEffect(() => {
+    const typeParam = searchParams.get('type')
+    if (typeParam === 'online' || typeParam === 'in-person') {
+      setConsultationType(typeParam)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Pre-select doctor from URL param once doctors list has loaded
+  useEffect(() => {
+    if (loadingDoctors || doctors.length === 0) return
+    const doctorId = searchParams.get('doctorId')
+    const typeParam = searchParams.get('type')
+    if (!doctorId) return
+    const found = doctors.find(d => d._id === doctorId)
+    if (found) {
+      setSelectedDoctor(doctorId)
+      // Both doctor AND consultation type were provided → skip Step 1 entirely
+      if (typeParam) setStep(2)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doctors, loadingDoctors])
 
   // Fetch consultation types when doctor is selected
   useEffect(() => {
@@ -124,6 +150,7 @@ export default function SmartBookAppointment() {
         timeSlot: selectedTime,
         visitType: selectedVisitType,
         reason: medicalNotes || 'General Consultation',
+        consultationType,
       }
 
       const res = await api.post('/scheduling/book', payload)
@@ -302,9 +329,81 @@ export default function SmartBookAppointment() {
       )}
 
       <div className="card shadow-sm border border-gray-100 p-6 md:p-8">
+
+        {/* Active consultation type reminder badge (shown in steps 2 & 3) */}
+        {step >= 2 && step < 4 && (
+          <div className={`flex items-center gap-2 mb-6 px-4 py-2.5 rounded-xl text-sm font-semibold w-fit ${
+            consultationType === 'online'
+              ? 'bg-blue-600 text-white'
+              : 'bg-purple-600 text-white'
+          }`}>
+            {consultationType === 'online' ? <Video size={15} /> : <MapPin size={15} />}
+            {consultationType === 'online' ? 'Online Video Call' : 'In-Person Visit'}
+            <button
+              onClick={() => setStep(1)}
+              className="ml-2 text-white/70 hover:text-white text-xs underline underline-offset-2 font-normal"
+            >
+              (change)
+            </button>
+          </div>
+        )}
+
         {/* Step 1: Select Doctor & Visit Type */}
         {step === 1 && (
           <div className="animate-fadeIn space-y-8">
+
+            {/* ── Consultation Mode Selection (FIRST — most important choice) ── */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Video className="text-blue-600" /> How would you like to consult?
+                <span className="ml-auto text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">Required</span>
+              </h2>
+              <p className="text-sm text-gray-400 mb-4">Select consultation mode before picking a doctor.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setConsultationType('in-person')}
+                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all shadow-sm ${
+                    consultationType === 'in-person'
+                      ? 'border-purple-600 bg-purple-50 shadow-md ring-2 ring-purple-200'
+                      : 'border-gray-200 hover:border-purple-300 bg-white'
+                  }`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                    consultationType === 'in-person' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-500'
+                  }`}>
+                    <MapPin size={26} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 text-base">In-Person Visit</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Visit the hospital. Best for physical exams.</p>
+                  </div>
+                  {consultationType === 'in-person' && <CheckCircle size={22} className="text-purple-600 flex-shrink-0" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setConsultationType('online')}
+                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all shadow-sm ${
+                    consultationType === 'online'
+                      ? 'border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-200'
+                      : 'border-gray-200 hover:border-blue-300 bg-white'
+                  }`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                    consultationType === 'online' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-500'
+                  }`}>
+                    <Video size={26} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 text-base">Online Video Call</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Consult from home via secure video. No travel needed.</p>
+                  </div>
+                  {consultationType === 'online' && <CheckCircle size={22} className="text-blue-600 flex-shrink-0" />}
+                </button>
+              </div>
+            </div>
+
             {/* Visit Type Selection */}
             <div>
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -478,7 +577,8 @@ export default function SmartBookAppointment() {
                     Selected: {selectedDate} at {selectedTime}
                   </p>
                   <p className="text-sm text-green-600">
-                    Duration: {selectedVisitTypeObj?.duration || 30} minutes
+                    Duration: {selectedVisitTypeObj?.duration || 30} min &nbsp;•&nbsp;
+                    {consultationType === 'online' ? '🎥 Online Video Call' : '🏥 In-Person Visit'}
                   </p>
                 </div>
               </div>
@@ -527,6 +627,16 @@ export default function SmartBookAppointment() {
                     </span>
                     <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md text-sm">
                       {selectedVisitType}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-dashed border-gray-200">
+                    <span className="text-gray-500 font-medium flex items-center gap-2">
+                      {consultationType === 'online' ? <Video size={16} className="text-blue-500" /> : <MapPin size={16} className="text-blue-500" />} Consultation
+                    </span>
+                    <span className={`font-bold px-2 py-0.5 rounded-md text-sm flex items-center gap-1 ${
+                      consultationType === 'online' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'
+                    }`}>
+                      {consultationType === 'online' ? <><Video size={12} /> Online Video Call</> : <><MapPin size={12} /> In-Person Visit</>}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-dashed border-gray-200">

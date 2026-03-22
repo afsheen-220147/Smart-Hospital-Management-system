@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Admin User",
+    "email": "admin@medicare.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "role": "patient"
+  },
+  {
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "password": "password123",
+    "role": "patient"
+  },
+  {
+    "name": "Dr. Sneha Patel",
+    "email": "sneha@medicare.com",
+    "password": "password123",
+    "role": "doctor"
+  },
+  {
+    "name": "Dr. Suresh Reddy",
+    "email": "suresh@medicare.com",
+    "password": "password123",
+    "role": "doctor"
+  }
+]

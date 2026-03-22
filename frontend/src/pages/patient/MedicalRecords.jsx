@@ -132,7 +132,7 @@ export default function MedicalRecords() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white p-1.5 rounded-xl border border-gray-100 shadow-sm flex overflow-x-auto no-scrollbar w-fit">
+      <div className="bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex overflow-x-auto no-scrollbar w-fit">
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-shrink-0 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${tab === t ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'

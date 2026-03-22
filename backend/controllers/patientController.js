@@ -84,3 +84,19 @@ exports.getMyProfile = asyncHandler(async (req, res, next) => {
     data: patient
   });
 });
+
+// @desc    Delete a patient profile (admin only)
+// @route   DELETE /api/v1/patients/:id
+// @access  Private/Admin
+exports.deletePatient = asyncHandler(async (req, res, next) => {
+  const patient = await Patient.findById(req.params.id);
+
+  if (!patient) {
+    res.status(404);
+    throw new Error('Patient not found');
+  }
+
+  await patient.deleteOne();
+
+  res.status(200).json({ success: true, message: 'Patient removed' });
+});

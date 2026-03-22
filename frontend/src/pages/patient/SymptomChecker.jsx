@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Bot, Search, AlertCircle, ArrowRight, ShieldCheck, Activity, Stethoscope, AlertTriangle } from 'lucide-react'
 import { showWarning, showError } from '../../utils/toast'
-import { analyzeSymptoms} from '../../services/ai'
+import { analyzeSymptoms, detectEmergency } from '../../services/ai'
 import { useNavigate } from 'react-router-dom'
 
 const symptomsData = [
