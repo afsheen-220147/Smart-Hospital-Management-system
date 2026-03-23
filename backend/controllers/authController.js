@@ -502,3 +502,34 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: 'Password reset failed' });
   }
 };
+
+// @desc    Check if doctor email is pre-approved by admin
+// @route   GET /api/v1/auth/check-doctor-email?email=xxx
+// @access  Public
+exports.checkDoctorEmail = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  const normalizedEmail = email.toLowerCase();
+
+  if (!normalizedEmail.endsWith('@rguktn.ac.in')) {
+    return res.status(200).json({
+      success: false,
+      authorized: false,
+      message: 'This email is not authorized to register as a doctor. Only @rguktn.ac.in institutional emails are allowed.',
+    });
+  }
+
+  const adminDoc = await AdminDoctor.findOne({ email: normalizedEmail });
+  if (!adminDoc) {
+    return res.status(200).json({
+      success: false,
+      authorized: false,
+      message: 'This email is not authorized to register as a doctor. Please contact the administrator.',
+    });
+  }
+
+  return res.status(200).json({ success: true, authorized: true });
+});

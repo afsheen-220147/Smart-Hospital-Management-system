@@ -1,13 +1,232 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* Enable class-based dark mode for manual toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #2B2B2B;
+  --color-primary-50: #F5F1EC;
+  --color-primary-100: #EAE4DD;
+  --color-primary-600: #2B2B2B;
+  --color-primary-700: #1F1F1F;
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui;
+
+  --color-blue-50: #F5F1EC;
+  --color-blue-100: #EAE4DD;
+  --color-blue-200: #DCD6CF;
+  --color-blue-300: #C4BDB4;
+  --color-blue-400: #9C958C;
+  --color-blue-500: #6B6B6B;
+  --color-blue-600: #2B2B2B;
+  --color-blue-700: #1F1F1F;
+  --color-blue-800: #141414;
+  --color-blue-900: #0A0A0A;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer base {
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body,
+  #root {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+
+  :root {
+    --bg-primary: #F5F1EC;
+    --bg-secondary: #EAE4DD;
+    --bg-accent: #DCD6CF;
+    --text-primary: #2B2B2B;
+    --text-secondary: #6B6B6B;
+    --btn-primary: #2B2B2B;
+    --btn-hover: #1F1F1F;
+    --btn-secondary: #E0DBD4;
+    --border-soft: rgba(0,0,0,0.08);
+    --shadow-soft: 0 20px 40px rgba(0,0,0,0.08);
+    --glass: rgba(255, 255, 255, 0.4);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  *:focus-visible {
+    outline: 3px solid var(--btn-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[var(--btn-primary)] hover:bg-[var(--btn-hover)] text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-[var(--shadow-soft)] cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--bg-secondary)] hover:bg-[var(--bg-accent)] text-[var(--text-primary)] font-semibold px-5 py-2.5 rounded-xl border border-[var(--border-soft)] shadow-sm transition-all duration-200 cursor-pointer;
+  }
+
+  .btn-danger {
+    @apply bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-lg transition-all duration-200 border border-red-200 cursor-pointer;
+  }
+
+  .card {
+    @apply bg-[var(--glass)] backdrop-blur-md rounded-[20px] shadow-[var(--shadow-soft)] border border-[var(--border-soft)] p-6;
+  }
+
+  .stat-card {
+    @apply bg-[var(--glass)] backdrop-blur-md rounded-[20px] shadow-[var(--shadow-soft)] border border-[var(--border-soft)] p-5 flex items-center gap-4 hover:-translate-y-1 transition-transform duration-300;
+  }
+
+  .badge-booked {
+    @apply bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply dark:bg-blue-900/40 dark:text-blue-300;
+  }
+
+  .badge-completed {
+    @apply bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply dark:bg-emerald-900/40 dark:text-emerald-300;
+  }
+
+  .badge-cancelled {
+    @apply bg-red-100 text-red-700 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply dark:bg-red-900/40 dark:text-red-300;
+  }
+
+  .badge-pending {
+    @apply bg-yellow-100 text-yellow-700 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply dark:bg-yellow-900/40 dark:text-yellow-300;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm;
+    @apply dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+    @apply dark:text-gray-300;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-200 font-medium text-sm cursor-pointer;
+  }
+
+  .sidebar-link-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-white/20 font-semibold text-sm;
+  }
+
+  .table-th {
+    @apply text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 text-left bg-gray-50;
+    @apply dark:bg-gray-700/60 dark:text-gray-400;
+  }
+
+  .table-td {
+    @apply px-4 py-3.5 text-sm text-gray-700 border-b border-gray-100;
+    @apply dark:text-gray-300 dark:border-gray-700;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-gray-900 mb-1;
+    @apply dark:text-white;
+  }
+
+  .section-subtitle {
+    @apply text-gray-500 text-sm;
+    @apply dark:text-gray-400;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-color: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
