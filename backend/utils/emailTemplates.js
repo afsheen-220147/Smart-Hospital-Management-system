@@ -693,7 +693,7 @@ const welcomeEmail = ({ patientName, email }) => ({
  * Sent to patient when doctor finalizes their medical record
  */
 const diagnosisComplete = ({ patientName, doctorName, department, diagnosis, prescription, recordType, visitDate, followUpNotes }) => ({
-  subject: `✅ Your Medical Record is Ready – ${HOSPITAL_NAME}`,
+  subject: `Your Diagnosis is Ready – ${HOSPITAL_NAME}`,
   html: `
     <!DOCTYPE html>
     <html>
@@ -707,7 +707,7 @@ const diagnosisComplete = ({ patientName, doctorName, department, diagnosis, pre
         ${emailHeader('📋', 'Medical Record Update')}
         <div class="content">
           <p class="greeting">Dear ${patientName},</p>
-          <p class="intro-text">Your doctor has completed and finalized your medical record from your recent visit. You can now view the details in your patient portal.</p>
+          <p class="intro-text">Your doctor has completed your diagnosis. Please login to your dashboard to check your prescription and medical details.</p>
           
           <span class="status-badge status-success">✅ Record Finalized</span>
           
@@ -765,7 +765,7 @@ const diagnosisComplete = ({ patientName, doctorName, department, diagnosis, pre
           </div>
           
           <div class="cta-section">
-            <a href="#" class="btn btn-primary">View Full Record</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn btn-primary">View Prescription</a>
             <a href="#" class="btn btn-secondary">Book Follow-up</a>
           </div>
         </div>

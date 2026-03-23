@@ -11,8 +11,9 @@
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
   
-  // Handle "HH:MM" format
-  let [hours, minutes] = timeStr.split(':').map(Number);
+  // Remove AM/PM for parsing numbers
+  const timeOnly = timeStr.replace(/ AM| PM| am| pm/g, '').trim();
+  let [hours, minutes] = timeOnly.split(':').map(Number);
   
   // Handle "HH:MM AM/PM" format
   if (timeStr.toLowerCase().includes('pm') && hours !== 12) {
