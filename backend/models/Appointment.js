@@ -101,33 +101,13 @@ const appointmentSchema = new mongoose.Schema({
   },
   consultationType: {
     type: String,
-    enum: ['in-person', 'video'],
+    enum: ['in-person', 'video', 'online'],
     default: 'in-person'
   },
   session: {
     type: String,
     enum: ['morning', 'afternoon', 'evening'],
     default: 'morning'
-  },
-  // Telemedicine fields
-  consultationType: {
-    type: String,
-    enum: ['in-person', 'online'],
-    default: 'in-person'
-  },
-  session: {
-    type: String,
-    enum: ['morning', 'afternoon', 'evening'],
-    default: 'morning'
-  },
-  queuePosition: {
-    type: Number
-  },
-  estimatedStartTime: {
-    type: Date
-  },
-  estimatedEndTime: {
-    type: Date
   },
   meetingRoomId: {
     type: String

@@ -72,7 +72,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Routes>
+        <Routes future={{ v7_relativeSplatPath: true }}>
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout />}>
             <Route index element={
