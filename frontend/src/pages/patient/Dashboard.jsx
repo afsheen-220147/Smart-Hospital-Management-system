@@ -84,7 +84,7 @@ export default function PatientDashboard() {
   }, [user, isDemoUser])
 
   const stats = [
-    { label: 'Upcoming Appts', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'All Appointments', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Visits', value: isDemoUser ? 12 : visits.length, icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Lab Reports', value: isDemoUser ? 3 : 0, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
   ]
@@ -103,7 +103,7 @@ export default function PatientDashboard() {
       <div className="card bg-gradient-to-r from-blue-600 to-blue-800 text-white border-none shadow-lg !p-8">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Patient'}! 👋</h1>
         <p className="text-blue-100 mb-6 max-w-xl">
-          Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} upcoming appointments.` : 'You have no appointments scheduled today.'}
+          Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} appointments.` : 'You have no appointments scheduled.'}
         </p>
         <div className="flex flex-wrap gap-4">
           <Link to="/patient/book" className="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 font-bold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-sm">
@@ -133,11 +133,11 @@ export default function PatientDashboard() {
             ))}
           </div>
 
-          {/* Upcoming Appointments */}
+          {/* All Appointments */}
           <div className="card p-0 overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                <Calendar size={18} className="text-blue-600" /> Upcoming Appointments
+                <Calendar size={18} className="text-blue-600" /> All Appointments
               </h2>
               <Link to="/patient/appointments" className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 View all <ArrowRight size={14} />
@@ -172,7 +172,7 @@ export default function PatientDashboard() {
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No upcoming appointments scheduled.</p>
+                  <p className="text-gray-500">No appointments scheduled.</p>
                   <Link to="/patient/book" className="text-blue-600 font-bold text-sm mt-2 inline-block">Book your first appointment</Link>
                 </div>
               )}
@@ -225,10 +225,11 @@ export default function PatientDashboard() {
         {/* Right Col - Health Summary */}
         <div className="space-y-6">
           <div className="card p-0 overflow-hidden sticky top-6">
-            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-              <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                <HeartPulse size={18} className="text-red-500" /> Health Summary
-              </h2>
+            <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full overflow-hidden shadow-inner border border-gray-100">
+                <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover scale-[2.0] translate-y-1" />
+              </div>
+              <h2 className="font-bold text-gray-900">Health Summary</h2>
             </div>
             <div className="p-5 space-y-4">
               {[
