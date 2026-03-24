@@ -1,19 +1,27 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { showError } from '../../utils/toast'
+import CancelAppointmentModal from '../../components/appointments/CancelAppointmentModal'
+
+const POLLING_INTERVAL = 15000; // Poll every 15 seconds for sync
 
 export default function Appointments() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false) // ✅ Track refresh separately
   const [filter, setFilter] = useState('All')
   const [reportModal, setReportModal] = useState(null) // holds appointment data for the modal
   const [reportRecords, setReportRecords] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
+  
+  // Cancel Modal State
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null)
 
   const handleSwitchType = async (app) => {
     if (String(app._id).startsWith('d')) return // demo data — skip
@@ -27,17 +35,32 @@ export default function Appointments() {
     }
   }
 
-  const handleCancel = async (id) => {
-    if (String(id).startsWith('d')) {
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'cancelled' } : a))
-      return
-    }
-    try {
-      await api.put(`/appointments/${id}`, { status: 'cancelled' })
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'cancelled' } : a))
-    } catch (err) {
-      console.error('Cancellation failed:', err)
-    }
+  // Open cancel modal for appointment
+  const handleCancelClick = (appointment) => {
+    setAppointmentToCancel(appointment)
+    setCancelModalOpen(true)
+  }
+
+  // Close cancel modal
+  const handleCloseCancelModal = () => {
+    setCancelModalOpen(false)
+    setAppointmentToCancel(null)
+  }
+
+  // Handle successful cancellation - ✅ NOW OPTIMISTIC
+  const handleCancelSuccess = (updatedAppointment) => {
+    // ✅ OPTIMISTIC UPDATE - Update UI immediately (no waiting for API)
+    setAppointments(prev => prev.map(a => 
+      a._id === updatedAppointment._id 
+        ? { 
+            ...a, 
+            status: 'cancelled', 
+            cancelReason: updatedAppointment.cancelReason, 
+            cancelledBy: updatedAppointment.cancelledBy || 'patient' 
+          } 
+        : a
+    ))
+    handleCloseCancelModal()
   }
 
   const handleViewReport = async (appointment) => {
@@ -57,60 +80,76 @@ export default function Appointments() {
     }
   }
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true)
-        let realAppts = []
-        if (user?._id || user?.id) {
-          const res = await api.get(`/appointments/patient/${user._id || user.id}`)
-          realAppts = res.data.data || []
-        }
-
-        // Combine with Demo Data for John Doe
-        if (user?.email === 'john@example.com') {
-          const demoAppts = [
-            { 
-              _id: 'd1',
-              doctor: { user: { name: 'Ravi Kumar' }, specialization: 'Cardiologist' }, 
-              date: '2026-03-12', 
-              timeSlot: '10:30 AM', 
-              status: 'confirmed', 
-              type: 'Consultation',
-              reason: 'Routine Checkup'
-            },
-            { 
-              _id: 'd2',
-              doctor: { user: { name: 'Priya Sharma' }, specialization: 'Neurologist' }, 
-              date: '2026-03-15', 
-              timeSlot: '02:00 PM', 
-              status: 'pending', 
-              type: 'Online Call',
-              reason: 'Migraine tracking'
-            },
-            { 
-              _id: 'd3',
-              doctor: { user: { name: 'Arjun Mehta' }, specialization: 'Orthopedic' }, 
-              date: '2026-02-28', 
-              timeSlot: '11:00 AM', 
-              status: 'completed', 
-              type: 'Consultation',
-              reason: 'Knee Pain'
-            }
-          ]
-          setAppointments([...demoAppts, ...realAppts])
-        } else {
-          setAppointments(realAppts)
-        }
-      } catch (err) {
-        showError('Failed to load appointments.')
-      } finally {
-        setLoading(false)
+  // ✅ Memoized fetch with showRefreshing parameter
+  const fetchAppointments = useCallback(async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) setRefreshing(true)
+      else setLoading(true)
+      
+      let realAppts = []
+      if (user?._id || user?.id) {
+        const res = await api.get(`/appointments/patient/${user._id || user.id}`)
+        realAppts = res.data.data || []
       }
-    }
 
-    if (user) fetchAppointments()
+      // Combine with Demo Data for John Doe
+      if (user?.email === 'john@example.com') {
+        const demoAppts = [
+          { 
+            _id: 'd1',
+            doctor: { user: { name: 'Ravi Kumar' }, specialization: 'Cardiologist' }, 
+            date: '2026-03-12', 
+            timeSlot: '10:30 AM', 
+            status: 'confirmed', 
+            type: 'Consultation',
+            reason: 'Routine Checkup'
+          },
+          { 
+            _id: 'd2',
+            doctor: { user: { name: 'Priya Sharma' }, specialization: 'Neurologist' }, 
+            date: '2026-03-15', 
+            timeSlot: '02:00 PM', 
+            status: 'pending', 
+            type: 'Online Call',
+            reason: 'Migraine tracking'
+          },
+          { 
+            _id: 'd3',
+            doctor: { user: { name: 'Arjun Mehta' }, specialization: 'Orthopedic' }, 
+            date: '2026-02-28', 
+            timeSlot: '11:00 AM', 
+            status: 'completed', 
+            type: 'Consultation',
+            reason: 'Knee Pain'
+          }
+        ]
+        setAppointments([...demoAppts, ...realAppts])
+      } else {
+        setAppointments(realAppts)
+      }
+    } catch (err) {
+      console.error('Error fetching appointments:', err)
+      showError('Failed to load appointments.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [user])
+
+  // ✅ POLLING: Auto-sync appointments every 15 seconds + cleanup
+  useEffect(() => {
+    if (user) {
+      // Initial fetch
+      fetchAppointments()
+      
+      // Setup polling for sync
+      const interval = setInterval(() => {
+        fetchAppointments(true) // showRefreshing=true, doesn't block UI
+      }, POLLING_INTERVAL)
+      
+      return () => clearInterval(interval)
+    }
+  }, [fetchAppointments, user])
 
   const filtered = appointments.filter(a => {
     if (filter === 'All') return true
@@ -171,7 +210,7 @@ export default function Appointments() {
 
             <div className="space-y-2 mb-5">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar size={16} className="text-gray-400" /> <span className="font-medium">{new Date(app.date).toLocaleDateString()}</span>
+                <Calendar size={16} className="text-gray-400" /> <span className="font-medium">{new Date(app.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Clock size={16} className="text-gray-400" /> <span className="font-medium">{app.timeSlot}</span>
@@ -188,6 +227,17 @@ export default function Appointments() {
               </div>
             </div>
 
+            {String(app.status).toLowerCase() === 'cancelled' && (
+              <div className="mb-4 p-3 rounded-lg border border-red-100 bg-red-50">
+                <p className="text-xs font-semibold text-red-700">
+                  {app.cancelledBy === 'patient' ? 'Cancelled by you' : app.cancelledBy === 'doctor' ? 'Cancelled by doctor' : app.cancelledBy === 'admin' ? 'Cancelled by admin' : 'Cancelled by system'}
+                </p>
+                {(app.cancelReason || app.cancellationReason) && (
+                  <p className="text-xs text-red-700 mt-1 italic">"{app.cancelReason || app.cancellationReason}"</p>
+                )}
+              </div>
+            )}
+
             <div className="pt-4 border-t border-gray-100 flex gap-2">
               {(app.status === 'pending' || app.status === 'confirmed') && (
                 <>
@@ -203,7 +253,7 @@ export default function Appointments() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleCancel(app._id)}
+                    onClick={() => handleCancelClick(app)}
                     className="flex-1 px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-xl text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-1">
                     <XCircle size={14} /> Cancel
                   </button>
@@ -238,6 +288,14 @@ export default function Appointments() {
         )}
       </div>
 
+      {/* Cancel Appointment Modal */}
+      <CancelAppointmentModal
+        appointment={appointmentToCancel}
+        isOpen={cancelModalOpen}
+        onClose={handleCloseCancelModal}
+        onCancelSuccess={handleCancelSuccess}
+      />
+
       {/* View Report Modal */}
       {reportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
@@ -247,7 +305,7 @@ export default function Appointments() {
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2"><FileText size={20} /> Appointment Report</h2>
                 <p className="text-blue-100 text-sm mt-1">
-                  Dr. {reportModal.doctor?.user?.name || reportModal.doctor?.name || 'Unknown'} • {new Date(reportModal.date).toLocaleDateString()} • {reportModal.timeSlot}
+                  Dr. {reportModal.doctor?.user?.name || reportModal.doctor?.name || 'Unknown'} • {new Date(reportModal.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })} • {reportModal.timeSlot}
                 </p>
               </div>
               <button onClick={() => setReportModal(null)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">

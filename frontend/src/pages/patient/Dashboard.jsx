@@ -159,7 +159,7 @@ export default function PatientDashboard() {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5 justify-end">
-                          <Clock size={14} className="text-blue-500" /> {new Date(a.date).toLocaleDateString()} at {a.timeSlot}
+                          <Clock size={14} className="text-blue-500" /> {new Date(a.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })} at {a.timeSlot}
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${

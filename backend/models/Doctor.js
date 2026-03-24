@@ -141,6 +141,27 @@ const doctorSchema = new mongoose.Schema({
   clinicCoordinates: {
     latitude: { type: Number },
     longitude: { type: Number }
+  },
+  // Real-time Queue Management
+  delayFactor: {
+    type: Number,
+    default: 0 // Current delay in minutes (Exponential Moving Average)
+  },
+  currentConsultationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Appointment',
+    default: null // ID of appointment currently being treated
+  },
+  sessionTemplates: {
+    type: [{
+      name: String,
+      maxPatients: Number
+    }],
+    default: [
+      { name: 'morning', maxPatients: 15 },
+      { name: 'afternoon', maxPatients: 15 },
+      { name: 'evening', maxPatients: 10 }
+    ]
   }
 }, {
   timestamps: true

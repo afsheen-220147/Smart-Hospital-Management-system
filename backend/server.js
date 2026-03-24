@@ -5,12 +5,16 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const appointmentAutoUpdateService = require('./services/appointmentAutoUpdateService');
 
 // Load env vars
 dotenv.config();
 
 // Connect to database
 connectDB();
+
+// Start appointment auto-update job
+appointmentAutoUpdateService.startAppointmentAutoUpdateJob();
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
@@ -156,6 +160,17 @@ server.on('error', (err) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
   // Close server & exit process
   server.close(() => process.exit(1));
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
