@@ -237,7 +237,7 @@ exports.googleAuth = async (req, res) => {
     });
   } catch (err) {
     console.error('Google Auth Error:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'Google authentication failed' });
+    res.status(400).json({ success: false, message: `Google authentication failed: ${err.message}` });
   }
 };
 
@@ -294,7 +294,7 @@ exports.googleAuthLogin = async (req, res) => {
     });
   } catch (err) {
     console.error('Google Login Error:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'Google login failed' });
+    res.status(400).json({ success: false, message: `Google login failed: ${err.message}` });
   }
 };
 
@@ -360,7 +360,7 @@ exports.googleRegister = async (req, res) => {
     res.status(201).json({ success: true, message: 'Registration successful! Please login with your email and password.' });
   } catch (err) {
     console.error('GoogleRegister Error:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'Registration failed' });
+    res.status(400).json({ success: false, message: `Registration failed: ${err.message}` });
   }
 };
 

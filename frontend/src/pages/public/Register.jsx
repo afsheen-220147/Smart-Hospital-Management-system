@@ -146,7 +146,7 @@ export default function Register() {
         idToken, role: selectedRole, password, confirmPassword: confirm
       })
       if (res.data.token) {
-        showSuccess('Registration successful! Welcome to MediCare+')
+        showSuccess('Registration successful! Welcome to NeoTherapy')
         loginWithData(res.data)
         redirectToDashboard(res.data.role)
       }
@@ -215,7 +215,7 @@ export default function Register() {
     try {
       const res = await api.post('/auth/register/verify-otp', { email, otp: otpCode })
       if (res.data.token) {
-        showSuccess('Registration successful! Welcome to MediCare+')
+        showSuccess('Registration successful! Welcome to NeoTherapy')
         loginWithData(res.data)
         redirectToDashboard(res.data.role)
       }
@@ -286,11 +286,11 @@ export default function Register() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-            <HeartPulse size={30} className="text-white" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full shadow-xl mb-4 overflow-hidden border-2 border-white">
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
-          <p className="text-gray-500 mt-1.5 text-sm">MediCare+ · Smart Hospital Portal</p>
+          <p className="text-gray-500 mt-1.5 text-sm">NeoTherapy · Smart Hospital Portal</p>
         </div>
 
         {/* Step Indicator */}

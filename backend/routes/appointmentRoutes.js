@@ -8,8 +8,15 @@ const {
   rescheduleAppointment,
   getAvailableSlots,
   deleteAppointment,
-  getAppointmentDetails
+  getAppointmentDetails,
+  startConsultation,
+  endConsultation,
+  uploadMedicalReport,
+  cancelAppointmentByDoctor,
+  autoCancelNoShows
 } = require('../controllers/appointmentController');
+
+const { uploadReport } = require('../config/cloudinary');
 
 const router = express.Router();
 
@@ -25,6 +32,15 @@ router
 
 // Get appointment details
 router.get('/:id', getAppointmentDetails);
+
+// Start consultation
+router.post('/:id/start', authorize('doctor', 'admin'), startConsultation);
+
+// End consultation
+router.post('/:id/end', authorize('doctor', 'admin'), endConsultation);
+
+// Upload report
+router.post('/:id/upload-report', protect, authorize('doctor', 'admin'), uploadReport.single('file'), uploadMedicalReport);
 
 // Get patient appointments
 router.get('/patient/:patientId', authorize('patient', 'doctor', 'admin'), getPatientAppointments);
@@ -43,5 +59,11 @@ router.put('/:id/reschedule', authorize('patient', 'doctor', 'admin'), reschedul
 
 // Delete appointment (only pending)
 router.delete('/:id', authorize('patient', 'admin'), deleteAppointment);
+
+// FEATURE 6: Doctor cancel appointment (e.g., patient no-show)
+router.post('/:id/cancel-by-doctor', authorize('doctor'), cancelAppointmentByDoctor);
+
+// FEATURE 2: Auto-cancel no-shows at session end
+router.post('/auto-cancel/no-shows', authorize('admin', 'doctor'), autoCancelNoShows);
 
 module.exports = router;

@@ -5,12 +5,10 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const appointmentAutoUpdateService = require('./services/appointmentAutoUpdateService');
 
 // Load env vars
 dotenv.config();
-
-// Connect to database
-connectDB();
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
@@ -29,6 +27,7 @@ const app = express();
 // Security middleware - Helmet with custom config for dev
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow Google OAuth postMessage/popups
   contentSecurityPolicy: false // Disable in development
 }));
 
@@ -95,7 +94,8 @@ app.get('/api/v1/public/stats', async (req, res) => {
       data: { patients: patientsCount, doctors: doctorsCount, appointments: apptsCount, departments: 12 }
     });
   } catch (error) {
-    res.status(500).json({ success: false, data: { patients: 50, doctors: 20, appointments: 120, departments: 12 }});
+    // Return 200 with fallback data instead of 500 to keep landing page functional
+    res.status(200).json({ success: true, data: { patients: 50, doctors: 20, appointments: 120, departments: 12 }});
   }
 });
 
@@ -111,8 +111,34 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+// Initialize server and start services
+const initializeServer = async () => {
+  try {
+    // Connect to database first
+    await connectDB();
+    console.log('✅ Connected to MongoDB');
+
+    // Start the appointment auto-update job
+    appointmentAutoUpdateService.startAppointmentAutoUpdateJob();
+
+    // Add MongoDB connection event handlers
+    const mongoose = require('mongoose');
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️  MongoDB disconnected');
+    });
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err.message);
+    });
+  } catch (error) {
+    console.error('❌ Failed to initialize server:', error.message);
+    process.exit(1);
+  }
+};
+
+// Start server
+const server = app.listen(PORT, async () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  await initializeServer();
 });
 
 // Handle port already in use
@@ -156,6 +182,17 @@ server.on('error', (err) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
   // Close server & exit process
   server.close(() => process.exit(1));
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

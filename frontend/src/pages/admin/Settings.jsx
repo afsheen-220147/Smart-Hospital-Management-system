@@ -19,11 +19,11 @@ export default function AdminSettings() {
     const { theme, setTheme } = useTheme()
 
     const [profile, setProfile] = useState({
-        hospitalName: 'MediCare+ Hospital',
-        email: 'admin@medicare.com',
+        hospitalName: 'NeoTherapy Hospital',
+        email: 'admin@neotherapy.com',
         phone: '+91 40 4444 5555',
         address: 'Kondapur, Hyderabad, Telangana – 500084',
-        website: 'www.medicare.com',
+        website: 'www.neotherapy.com',
         regNumber: 'HYD-MED-2001-1234',
     })
 

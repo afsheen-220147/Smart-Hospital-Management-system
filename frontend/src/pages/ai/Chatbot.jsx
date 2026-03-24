@@ -14,7 +14,7 @@ const suggestions = [
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([
-    { from: 'bot', text: "Hello! I'm MediCare+ AI Assistant powered by advanced AI. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    { from: 'bot', text: "Hello! I'm NeoTherapy AI Assistant powered by advanced AI. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   ])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -82,7 +82,7 @@ export default function Chatbot() {
               <Bot size={24} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-white">MediCare+ AI Assistant</p>
+              <p className="font-bold text-white">NeoTherapy AI Assistant</p>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <p className="text-blue-200 text-xs">AI Powered — Instant Response</p>

@@ -20,6 +20,22 @@ export default function DoctorDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStr, setFilterStr] = useState('Today'); // Today, Upcoming, Completed
 
+  // NEW FEATURE: Local on-duty state (can be synced with localStorage)
+  const [isOnDuty, setIsOnDuty] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('doctorOnDuty')
+      return saved ? JSON.parse(saved) : true
+    }
+    return true
+  })
+
+  // NEW FEATURE: Sync on-duty state with localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('doctorOnDuty', JSON.stringify(isOnDuty))
+    }
+  }, [isOnDuty])
+
   // Fetch Data
   useEffect(() => {
     const fetchDoctorData = async () => {
@@ -89,6 +105,9 @@ export default function DoctorDashboard() {
     else if (timeStr.toLowerCase().includes('am') && hours === 12) hours = 0;
     return hours * 60 + (minutes || 0);
   };
+
+  // NEW FEATURE: Track if search is active
+  const isSearching = searchTerm.trim().length > 0
 
   // Smart Sorting & Filtering
   const filteredAndSortedAppointments = useMemo(() => {
@@ -206,14 +225,25 @@ export default function DoctorDashboard() {
       {/* 2. Main Scheduler Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         
+        {/* NEW FEATURE: Banner when Off Duty */}
+        {!isOnDuty && (
+          <div className="bg-red-50 border-b border-red-200 p-4 flex items-center gap-3">
+            <Activity className="text-red-600" size={20} />
+            <div>
+              <p className="text-sm font-bold text-red-700">You are Off Duty</p>
+              <p className="text-xs text-red-600">Scheduling is paused. Appointments are shown as Waiting.</p>
+            </div>
+          </div>
+        )}
+        
         {/* Table Header Controls */}
         <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Clock className="text-green-600" size={20} /> Smart Schedule
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">AI-prioritized patient queue.</p>
-          </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Clock className="text-green-600" size={20} /> Smart Schedule
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">AI-prioritized patient queue.</p>
+            </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {/* Search */}
@@ -226,6 +256,12 @@ export default function DoctorDashboard() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all bg-white"
               />
+              {/* NEW FEATURE: Show search result count */}
+              {isSearching && (
+                <div className="absolute bottom-0 left-3 translate-y-6 text-xs text-gray-500 font-medium">
+                  Found {filteredAndSortedAppointments.length} result{filteredAndSortedAppointments.length !== 1 ? 's' : ''}
+                </div>
+              )}
             </div>
             
             {/* Filter Toggle */}
@@ -266,7 +302,12 @@ export default function DoctorDashboard() {
                   return (
                     <tr 
                       key={appt._id} 
-                      className={`group hover:bg-green-50/30 transition-all duration-300 cursor-pointer hover:shadow-sm ${isOngoing ? 'bg-green-50/50' : ''}`}
+                      className={`group hover:bg-green-50/30 transition-all duration-300 cursor-pointer hover:shadow-sm ${isOngoing ? 'bg-green-50/50' : ''} ${
+                        // NEW FEATURE: Highlight search matches
+                        isSearching && appt.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) 
+                          ? 'bg-blue-50/40 border-l-4 border-blue-500' 
+                          : ''
+                      }`}
                     >
                       {/* 1. Time Slot */}
                       <td className="px-6 py-4">
@@ -333,7 +374,8 @@ export default function DoctorDashboard() {
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Ongoing
                           </span>
                         )}
-                        {(appt.status === 'pending' || appt.status === 'confirmed' || appt.status === 'Waiting') && (
+                        {/* NEW FEATURE: Show Waiting status only when OFF DUTY */}
+                        {!isOnDuty && (appt.status === 'pending' || appt.status === 'confirmed' || appt.status === 'Waiting') && (
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
                             <Clock size={12} /> Waiting
                           </span>

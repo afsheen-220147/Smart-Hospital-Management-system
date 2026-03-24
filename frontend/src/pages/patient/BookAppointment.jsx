@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, Clock, User, CheckCircle, ChevronRight, Check, AlertCircle, Activity } from 'lucide-react'
 import api from '../../services/api'
-import { showSuccess } from '../../utils/toast'
+import { showSuccess, showError } from '../../utils/toast'
 
 const timeSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '04:00 PM', '04:30 PM', '05:00 PM']
 
@@ -34,7 +34,12 @@ export default function BookAppointment() {
     fetchDoctors()
   }, [])
 
-  const handleBook = async () => {
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
     try {
       setBookingLoading(true)
       setError(null)
@@ -56,7 +61,9 @@ export default function BookAppointment() {
       }, 5000)
     } catch (err) {
       console.error('Booking failed:', err)
-      setError(err.response?.data?.message || 'Booking failed. Please check your data.')
+      const errorMsg = err.response?.data?.message || 'Booking failed. Please check your data.'
+      setError(errorMsg)
+      showError(errorMsg) // ✅ Show toast notification
     } finally {
       setBookingLoading(false)
     }
@@ -159,7 +166,7 @@ export default function BookAppointment() {
                   <Calendar size={18} className="absolute left-4 top-3.5 text-blue-600" />
                   <input type="date" className="form-input pl-12 py-3 text-base shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                     value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]} />
+                    min={getLocalDateString(new Date())} />
                 </div>
               </div>
               <div className="form-group mb-0">
