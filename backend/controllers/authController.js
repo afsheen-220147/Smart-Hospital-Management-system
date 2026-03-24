@@ -39,7 +39,7 @@ const sendRegistrationOtpEmail = async (email, otp) => {
 // Helper: create profile record for patient or doctor
 const createProfileRecord = async (user, department) => {
   if (user.role === 'patient') {
-    await Patient.create({ user: user._id, gender: 'Male', bloodGroup: 'O+' });
+    await Patient.create({ user: user._id });
   } else if (user.role === 'doctor') {
     await Doctor.create({ user: user._id, specialization: department || 'General', experience: 0, fees: 0 });
   }

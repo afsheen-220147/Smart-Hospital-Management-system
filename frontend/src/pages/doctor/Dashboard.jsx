@@ -8,6 +8,19 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
+// NEW FEATURE: Dynamic Patient Age
+const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -317,7 +330,16 @@ export default function DoctorDashboard() {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isEmergency ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                             {appt.patient?.name?.charAt(0) || 'P'}
                           </div>
-                          <span className="font-semibold text-gray-800">{appt.patient?.name || 'Unknown Patient'}</span>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-gray-800">{appt.patient?.name || 'Unknown Patient'}</span>
+                            {/* NEW FEATURE: Dynamic Patient Age */}
+                            <span className="text-xs text-gray-500">
+                              {appt.patient?.dateOfBirth 
+                                ? `${calculateAge(appt.patient.dateOfBirth)} yrs`
+                                : 'Not Specified'
+                              }
+                            </span>
+                          </div>
                         </div>
                       </td>
 

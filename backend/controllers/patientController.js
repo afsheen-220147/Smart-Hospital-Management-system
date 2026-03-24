@@ -100,3 +100,23 @@ exports.deletePatient = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ success: true, message: 'Patient removed' });
 });
+
+// @desc    Fix hardcoded gender for existing patients (Admin only)
+// @route   POST /api/v1/patients/admin/fix-gender
+// @access  Private/Admin
+exports.fixPatientGender = asyncHandler(async (req, res, next) => {
+  // Fix patients with default 'Male' and no dateOfBirth - clear their gender field
+  const result = await Patient.updateMany(
+    { 
+      gender: 'Male',
+      dateOfBirth: null
+    },
+    { $unset: { gender: '' } }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: `Fixed ${result.modifiedCount} patient records. They will now show 'Not Specified' until they update their profile.`,
+    modifiedCount: result.modifiedCount
+  });
+});

@@ -4,6 +4,29 @@ import { Calendar, Clock, Video, User, CheckCircle, XCircle, MapPin } from 'luci
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 
+// NEW FEATURE: Dynamic Patient Age & Date Handling
+const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// NEW FEATURE: Format date to DD/MM/YYYY
+const formatAppointmentDate = (dateStr) => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function DoctorAppointments() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -87,12 +110,31 @@ export default function DoctorAppointments() {
     await handleStatusUpdate(app, 'in-progress')
   }
 
+  // NEW FEATURE: Filter Completed Appointments & Sort by Date/Time
+  const parseAppointmentDateTime = (timeStr, dateStr) => {
+    let timeOnly = (timeStr || '').replace(/ AM| PM| am| pm/g, '').trim();
+    let [hours, minutes] = timeOnly.split(':').map(Number);
+    if ((timeStr || '').toLowerCase().includes('pm') && hours !== 12) hours += 12;
+    else if ((timeStr || '').toLowerCase().includes('am') && hours === 12) hours = 0;
+    
+    // If date exists, use it; otherwise use today
+    const date = dateStr ? new Date(dateStr) : new Date();
+    date.setHours(hours || 0, minutes || 0, 0, 0);
+    return date.getTime();
+  };
+
   const filtered = appointments.filter(a => {
-    if (filter === 'All') return true
-    const s = a.status.toLowerCase()
-    if (filter === 'Upcoming') return s === 'upcoming' || s === 'confirmed' || s === 'pending'
-    return s === filter.toLowerCase()
-  })
+    if (filter === 'All') return true;
+    const s = a.status.toLowerCase();
+    // NEW FEATURE: Exclude completed from "Upcoming" tab
+    if (filter === 'Upcoming') return (s === 'upcoming' || s === 'confirmed' || s === 'pending') && s !== 'completed';
+    return s === filter.toLowerCase();
+  }).sort((aApp, bApp) => {
+    // NEW FEATURE: Sort appointments by nearest date and time
+    const aTime = parseAppointmentDateTime(aApp.timeSlot, aApp.appointmentDate || aApp.date);
+    const bTime = parseAppointmentDateTime(bApp.timeSlot, bApp.appointmentDate || bApp.date);
+    return aTime - bTime;
+  });
 
   if (loading) {
     return (
@@ -149,6 +191,13 @@ export default function DoctorAppointments() {
               <div className="flex items-center gap-2 text-sm text-gray-800 font-bold">
                 <Clock size={16} className="text-teal-500" /> <span>{app.timeSlot}</span>
               </div>
+              {/* NEW FEATURE: Appointment Date Display */}
+              {(app.appointmentDate || app.date) && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+                  <Calendar size={16} className="text-teal-500" /> 
+                  <span>{formatAppointmentDate(app.appointmentDate || app.date)}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
                 {isOnline(app) ? <Video size={16} className="text-blue-500" /> : <MapPin size={16} className="text-purple-500" />}
                 <span className={`font-semibold ${isOnline(app) ? 'text-blue-600' : 'text-purple-600'}`}>

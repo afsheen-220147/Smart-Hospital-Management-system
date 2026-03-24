@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { 
   Calendar, Save, CheckCircle, Clock, ChevronLeft, ChevronRight,
-  Plus, X, Bell, AlertCircle, Trash2
+  Plus, X, Bell, AlertCircle, Trash2, Users, Clock3
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
@@ -46,6 +46,7 @@ export default function Schedule() {
   const [animationDirection, setAnimationDirection] = useState('')
   const [showSlotModal, setShowSlotModal] = useState(null)
   const [newSlot, setNewSlot] = useState({ start: '09:00', end: '09:30' })
+  const [dayStatusInfo, setDayStatusInfo] = useState({})
 
   const isDemoDoctor = user?.email === 'sneha@medicare.com' || user?.email === 'suresh@medicare.com'
   const isCurrentWeek = weekOffset === 0
@@ -53,11 +54,44 @@ export default function Schedule() {
 
   useEffect(() => {
     fetchSchedule()
+    fetchDayStatusInfo()
   }, [weekOffset])
 
-  useEffect(() => {
-    setWeekDates(getWeekDates(weekOffset))
-  }, [weekOffset])
+  const fetchDayStatusInfo = async () => {
+    try {
+      if (isDemoDoctor) return
+      
+      const profRes = await api.get('/doctors/me')
+      const docId = profRes.data.data._id
+      
+      const apptRes = await api.get(`/appointments/doctor/${docId}`)
+      const appointments = apptRes.data.data || []
+      
+      // Group appointments by day and get status counts
+      const statusByDay = {}
+      DAYS.forEach(day => {
+        statusByDay[day] = {
+          pending: 0,
+          confirmed: 0,
+          completed: 0,
+          total: 0
+        }
+      })
+      
+      appointments.forEach(apt => {
+        const aptDate = new Date(apt.date)
+        const dayName = DAYS[aptDate.getDay() === 0 ? 6 : aptDate.getDay() - 1]
+        if (statusByDay[dayName]) {
+          statusByDay[dayName][apt.status || 'pending']++
+          statusByDay[dayName].total++
+        }
+      })
+      
+      setDayStatusInfo(statusByDay)
+    } catch (e) {
+      console.error("Fetch day status error:", e)
+    }
+  }
 
   const fetchSchedule = async () => {
     try {
@@ -364,7 +398,25 @@ export default function Schedule() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wider px-4 py-2 bg-gray-100 rounded-lg">Not Available</span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm font-bold text-red-600 uppercase tracking-wider px-4 py-2 bg-red-50 rounded-lg flex items-center gap-2">
+                        <Clock3 size={16} /> Off Duty
+                      </span>
+                      {dayStatusInfo[day] && dayStatusInfo[day].total > 0 && (
+                        <div className="flex items-center gap-4">
+                          {dayStatusInfo[day].pending > 0 && (
+                            <span className="text-xs font-semibold px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg flex items-center gap-1.5">
+                              <Users size={14} /> {dayStatusInfo[day].pending} Waiting
+                            </span>
+                          )}
+                          {dayStatusInfo[day].confirmed > 0 && (
+                            <span className="text-xs font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-1.5">
+                              <CheckCircle size={14} /> {dayStatusInfo[day].confirmed} Confirmed
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 

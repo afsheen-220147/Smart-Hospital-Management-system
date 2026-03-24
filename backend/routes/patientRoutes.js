@@ -4,7 +4,8 @@ const {
   getPatient,
   updatePatientProfile,
   getMyProfile,
-  deletePatient
+  deletePatient,
+  fixPatientGender
 } = require('../controllers/patientController');
 
 const router = express.Router();
@@ -18,6 +19,9 @@ router
   .route('/')
   .get(authorize('admin', 'doctor'), getPatients)
   .post(updatePatientProfile);
+
+// Admin endpoints
+router.post('/admin/fix-gender', authorize('admin'), fixPatientGender);
 
 router.route('/me').get(getMyProfile);
 router.route('/:id').get(getPatient).delete(authorize('admin'), deletePatient);

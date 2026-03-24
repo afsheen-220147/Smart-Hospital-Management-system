@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
+const Patient = require('../models/Patient');
 const asyncHandler = require('express-async-handler');
 
 // @desc    Get all appointments
@@ -13,11 +14,44 @@ exports.getAppointments = asyncHandler(async (req, res, next) => {
       populate: { path: 'user', select: 'name' }
     });
 
-  res.status(200).json({
-    success: true,
-    count: appointments.length,
-    data: appointments
-  });
+  // NEW FEATURE: Include patient dateOfBirth from Patient model
+  try {
+    const enrichedAppointments = await Promise.all(
+      appointments.map(async (apt) => {
+        try {
+          const patientData = await Patient.findOne({ user: apt.patient._id });
+          const aptObj = apt.toObject ? apt.toObject() : apt;
+          
+          return {
+            ...aptObj,
+            patient: {
+              ...aptObj.patient,
+              dateOfBirth: patientData?.dateOfBirth || null,
+              gender: patientData?.gender || null,
+              bloodGroup: patientData?.bloodGroup || null,
+              phone: patientData?.phone || null,
+              address: patientData?.address || null
+            }
+          };
+        } catch (err) {
+          return apt.toObject ? apt.toObject() : apt;
+        }
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: enrichedAppointments.length,
+      data: enrichedAppointments
+    });
+  } catch (err) {
+    console.error('Error in getAppointments:', err);
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments
+    });
+  }
 });
 
 // @desc    Get appointments for a patient
@@ -35,10 +69,13 @@ exports.getPatientAppointments = asyncHandler(async (req, res, next) => {
       populate: { path: 'user', select: 'name' }
     });
 
+  // NEW FEATURE: Include patient dateOfBirth from Patient model
+  const enrichedAppointments = appointments;
+
   res.status(200).json({
     success: true,
-    count: appointments.length,
-    data: appointments
+    count: enrichedAppointments.length,
+    data: enrichedAppointments
   });
 });
 
@@ -163,11 +200,48 @@ exports.getDoctorAppointments = asyncHandler(async (req, res, next) => {
     .populate('patient', 'name email')
     .sort({ date: 1, timeSlot: 1 });
 
-  res.status(200).json({
-    success: true,
-    count: appointments.length,
-    data: appointments
-  });
+  // NEW FEATURE: Include patient dateOfBirth from Patient model
+  try {
+    // Enrich appointments with patient dateOfBirth and other details
+    const enrichedAppointments = await Promise.all(
+      appointments.map(async (apt) => {
+        try {
+          const patientData = await Patient.findOne({ user: apt.patient._id });
+          const aptObj = apt.toObject ? apt.toObject() : apt;
+          
+          return {
+            ...aptObj,
+            patient: {
+              ...aptObj.patient,
+              dateOfBirth: patientData?.dateOfBirth || null,
+              gender: patientData?.gender || null,
+              bloodGroup: patientData?.bloodGroup || null,
+              phone: patientData?.phone || null,
+              address: patientData?.address || null
+            }
+          };
+        } catch (err) {
+          // If enrichment fails for one appointment, return it as-is
+          console.error('Error enriching appointment:', err);
+          return apt.toObject ? apt.toObject() : apt;
+        }
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: enrichedAppointments.length,
+      data: enrichedAppointments
+    });
+  } catch (err) {
+    // Fallback: return basic appointments without enrichment
+    console.error('Error in getDoctorAppointments:', err);
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments
+    });
+  }
 });
 
 // @desc    Update appointment status

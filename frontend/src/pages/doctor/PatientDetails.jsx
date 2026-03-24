@@ -5,6 +5,19 @@ import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import ReportSummaryPanel from '../../components/ReportSummaryPanel'
 
+// NEW FEATURE: Dynamic Age in My Patients
+const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export default function PatientDetails() {
   const { user } = useAuth()
   const { id: urlPatientId } = useParams()
@@ -39,11 +52,13 @@ export default function PatientDetails() {
                id: a.patient._id,
                name: a.patient.name,
                email: a.patient.email,
-               age: 26, // Default or fetch from profile if stored
-               gender: 'Not Specified',
-               bloodGroup: 'Unknown',
-               phone: 'Not provided',
-               address: 'Not provided',
+               // NEW FEATURE: Dynamic Age in My Patients - store DOB if available
+               dateOfBirth: a.patient.dateOfBirth || null,
+               age: a.patient.dateOfBirth ? calculateAge(a.patient.dateOfBirth) : 'Not specified',
+               gender: a.patient.gender ? String(a.patient.gender).trim() : 'Not Specified',
+               bloodGroup: a.patient.bloodGroup || 'Unknown',
+               phone: a.patient.phone || 'Not provided',
+               address: a.patient.address || 'Not provided',
                visits: appts.filter(vis => vis.patient?._id === a.patient._id && vis.status === 'completed').map(v => ({
                  date: new Date(v.date).toLocaleDateString(),
                  diag: v.reason,
@@ -60,17 +75,17 @@ export default function PatientDetails() {
       if (isDemoDoctor) {
         const demoPatients = [
           {
-            id: 'demo1', name: 'Venkat R.', age: 28, gender: 'Male', bloodGroup: 'B+', phone: '+91 98765 43210', email: 'venkat@gmail.com', address: 'Hyderabad, TG', visits: [
+            id: 'demo1', name: 'Venkat R.', age: 28, dateOfBirth: new Date(1998, 0, 15), gender: 'Male', bloodGroup: 'B+', phone: '+91 98765 43210', email: 'venkat@gmail.com', address: 'Hyderabad, TG', visits: [
               { date: '15 Feb 2026', diag: 'Routine Checkup', rx: 'Vitamin D3' },
               { date: '10 Jan 2026', diag: 'Mild Hypertension', rx: 'Rest, track BP' }
             ]
           },
           {
-            id: 'demo2', name: 'Rahul K.', age: 34, gender: 'Male', bloodGroup: 'O+', phone: '+91 88888 77777', email: 'rahul@gmail.com', address: 'Secunderabad, TG', visits: [
+            id: 'demo2', name: 'Rahul K.', age: 34, dateOfBirth: new Date(1992, 5, 22), gender: 'Male', bloodGroup: 'O+', phone: '+91 88888 77777', email: 'rahul@gmail.com', address: 'Secunderabad, TG', visits: [
               { date: '05 Mar 2026', diag: 'Chest Pain', rx: 'ECG done, normal. Suggested antacids.' }
             ]
           },
-          { id: 'demo3', name: 'Anitha S.', age: 42, gender: 'Female', bloodGroup: 'A-', phone: '+91 77777 66666', email: 'anitha@gmail.com', address: 'Cyberabad, TG', visits: [] },
+          { id: 'demo3', name: 'Anitha S.', age: 42, dateOfBirth: new Date(1984, 3, 10), gender: 'Female', bloodGroup: 'A-', phone: '+91 77777 66666', email: 'anitha@gmail.com', address: 'Cyberabad, TG', visits: [] },
         ]
         const merged = [...demoPatients, ...finalPatients]
         setPatients(merged)
@@ -116,8 +131,10 @@ export default function PatientDetails() {
             fetchedIds.current.add(selected.id)
             setSelected(prev => ({
               ...prev,
-              age: realPatient.dateOfBirth ? Math.floor((new Date() - new Date(realPatient.dateOfBirth)) / 31557600000) : 26,
-              gender: realPatient.gender || 'Not Specified',
+              // NEW FEATURE: Dynamic Age in My Patients
+              dateOfBirth: realPatient.dateOfBirth || null,
+              age: realPatient.dateOfBirth ? calculateAge(realPatient.dateOfBirth) : 'Not specified',
+              gender: realPatient.gender ? String(realPatient.gender).trim() : 'Not Specified',
               bloodGroup: realPatient.bloodGroup || 'Unknown',
               phone: realPatient.phone || 'Not provided',
               address: realPatient.address || 'Not provided'
@@ -184,7 +201,8 @@ export default function PatientDetails() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold truncate ${selected?.id === p.id ? 'text-teal-900' : 'text-gray-900'}`}>{p.name}</p>
-                <p className="text-xs text-gray-500 truncate">{p.age} yrs · {p.gender}</p>
+                {/* NEW FEATURE: Dynamic Age in My Patients */}
+                <p className="text-xs text-gray-500 truncate">{p.dateOfBirth ? `${calculateAge(p.dateOfBirth)} yrs` : p.age === 'Not specified' ? 'Not specified' : `${p.age} yrs`} · {p.gender}</p>
               </div>
             </div>
           ))}
@@ -210,7 +228,8 @@ export default function PatientDetails() {
               <div className="flex-1 text-center sm:text-left">
                 <h2 className="text-2xl font-bold text-gray-900">{selected.name}</h2>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-2">
-                  <span className="text-sm font-semibold text-gray-600 flex items-center gap-1.5"><Calendar size={14} className="text-teal-500" /> {selected.age} Years</span>
+                  {/* NEW FEATURE: Dynamic Age in My Patients */}
+                  <span className="text-sm font-semibold text-gray-600 flex items-center gap-1.5"><Calendar size={14} className="text-teal-500" /> {selected.dateOfBirth ? calculateAge(selected.dateOfBirth) + ' Years' : selected.age === 'Not specified' ? 'Not specified' : selected.age + ' Years'}</span>
                   <span className="text-sm font-semibold text-gray-600 flex items-center gap-1.5"><Activity size={14} className="text-teal-500" /> {selected.gender}</span>
                   <span className="text-sm font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg flex items-center gap-1"><HeartPulse size={12} /> {selected.bloodGroup}</span>
                 </div>
