@@ -80,7 +80,7 @@ export default function PatientLayout() {
             </button>
             <div>
               <h1 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h1>
-              <p className="text-xs text-gray-400">Patient Portal · MediCare+</p>
+              <p className="text-xs text-gray-400">Patient Portal · NeoTherapy</p>
             </div>
           </div>
 

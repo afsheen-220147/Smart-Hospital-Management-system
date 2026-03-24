@@ -160,7 +160,7 @@ export default function Home() {
             {/* Branding - Minimal Logo Style */}
             <div className="mb-8">
                <div className="inline-block relative">
-                 <h2 className="text-xl font-light tracking-[0.2em] text-[var(--text-primary)] uppercase">MediCare<span className="font-semibold">+</span></h2>
+                 <h2 className="text-xl font-light tracking-[0.2em] text-[var(--text-primary)] uppercase">Neo<span className="font-semibold">Therapy</span></h2>
                  <div className="absolute bottom-[-4px] left-0 w-full h-[1px] bg-gradient-to-r from-[var(--text-secondary)] to-transparent opacity-30" />
                </div>
             </div>
@@ -173,8 +173,11 @@ export default function Home() {
               Smart Healthcare<br />
               <span className="text-[var(--text-secondary)] font-normal">At Your Fingertips</span>
             </h1>
-            <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-8 max-w-md">
-              Book appointments online, access your medical records instantly, and consult with {stats.doctors}+ expert doctors — all from home.
+            <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-4 max-w-md italic font-medium opacity-90">
+              “Care You Can Trust, Technology You Can Rely On.”
+            </p>
+            <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-md opacity-70">
+              Book appointments online, access medical records instantly, and consult with {stats.doctors}+ expert doctors — all from home.
             </p>
             <div className="flex flex-wrap gap-5">
               <Link to="/register" className="flex items-center gap-2 px-7 py-3.5 bg-[var(--text-primary)] text-white font-medium rounded-2xl hover:bg-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
@@ -354,7 +357,7 @@ export default function Home() {
       <section id="features" className="bg-gradient-to-br from-[#1F1F1F] to-[#0A0A0A] py-16">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
           <div className="text-white">
-            <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Why MediCare+</span>
+            <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Why NeoTherapy</span>
             <h2 className="text-3xl font-bold mt-2 mb-8">Modern Healthcare Built for You</h2>
             <div className="space-y-4">
               {features.map(f => (

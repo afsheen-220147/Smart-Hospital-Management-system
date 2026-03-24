@@ -53,7 +53,7 @@ export default function DoctorProfile() {
           qualification: 'MBBS, MD (Internal Medicine)',
           licenseNumber: 'MCI-123456',
           department: 'Internal Medicine',
-          clinicAddress: 'MediCare+ Hospital, Hyderabad',
+          clinicAddress: 'NeoTherapy Hospital, Hyderabad',
           availabilityStatus: 'available',
           ratings: 4.8,
           totalPatients: 1250
