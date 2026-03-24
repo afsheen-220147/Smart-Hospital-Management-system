@@ -119,6 +119,12 @@ export default function DoctorDashboard() {
       if (a.status === 'in-progress' && b.status !== 'in-progress') return -1;
       if (a.status !== 'in-progress' && b.status === 'in-progress') return 1;
 
+      // Status priority: pending/confirmed > completed > cancelled
+      const statusOrder = { pending: 1, confirmed: 1, completed: 2, cancelled: 3 };
+      const orderA = statusOrder[a.status] || 99;
+      const orderB = statusOrder[b.status] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+
       // Time-based sorting (nearest first)
       return parseTime(a.timeSlot) - parseTime(b.timeSlot);
     });
@@ -267,6 +273,7 @@ export default function DoctorDashboard() {
                         <div className="flex flex-col">
                           <span className={`font-bold ${isOngoing ? 'text-green-700' : 'text-gray-900'}`}>{appt.timeSlot}</span>
                           {appt.endTime && <span className="text-xs text-gray-400 font-medium">to {appt.endTime}</span>}
+                          <span className="text-[10px] text-gray-500 mt-1">Booked: {appt.createdAt ? new Date(appt.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                         </div>
                       </td>
 

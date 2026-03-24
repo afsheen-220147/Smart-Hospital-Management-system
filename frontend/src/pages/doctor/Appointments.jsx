@@ -92,6 +92,25 @@ export default function DoctorAppointments() {
     const s = a.status.toLowerCase()
     if (filter === 'Upcoming') return s === 'upcoming' || s === 'confirmed' || s === 'pending'
     return s === filter.toLowerCase()
+  }).sort((a, b) => {
+    // In-progress priority
+    if (a.status === 'in-progress' && b.status !== 'in-progress') return -1;
+    if (a.status !== 'in-progress' && b.status === 'in-progress') return 1;
+
+    // Status sorting
+    const statusValues = {
+      'pending': 1,
+      'upcoming': 1,
+      'confirmed': 1,
+      'completed': 2,
+      'cancelled': 3
+    };
+    const valA = statusValues[a.status.toLowerCase()] || 99;
+    const valB = statusValues[b.status.toLowerCase()] || 99;
+    if (valA !== valB) return valA - valB;
+
+    if (!a.createdAt || !b.createdAt) return 0;
+    return new Date(b.createdAt) - new Date(a.createdAt);
   })
 
   if (loading) {
@@ -154,6 +173,10 @@ export default function DoctorAppointments() {
                 <span className={`font-semibold ${isOnline(app) ? 'text-blue-600' : 'text-purple-600'}`}>
                   {isOnline(app) ? 'Online Video Call' : 'In-Person Visit'}
                 </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 font-medium pt-2 mt-2 border-t border-gray-100">
+                <span className="text-[11px] uppercase tracking-wider font-bold">Booked on:</span>
+                <span className="text-gray-700 font-semibold">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
               </div>
             </div>
 
