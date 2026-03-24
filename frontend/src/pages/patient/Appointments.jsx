@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin } from 'lucide-react'
+import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin, Search } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -14,6 +14,8 @@ export default function Appointments() {
   const [reportModal, setReportModal] = useState(null) // holds appointment data for the modal
   const [reportRecords, setReportRecords] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
+  // NEW FEATURE: Doctor Search
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleSwitchType = async (app) => {
     if (String(app._id).startsWith('d')) return // demo data — skip
@@ -114,10 +116,27 @@ export default function Appointments() {
 
   const filtered = appointments.filter(a => {
     if (filter === 'All') return true
-    const backendStatus = a.status.toLowerCase()
+    const backendStatus = (a.status || '').toLowerCase()
     if (filter === 'Upcoming') return backendStatus === 'pending' || backendStatus === 'confirmed'
     return backendStatus === filter.toLowerCase()
   })
+
+  // NEW FEATURE: Doctor Search - Filter appointments by doctor name
+  const filteredByStatus = filtered
+  const filteredAppointments = filteredByStatus.filter(a => {
+    if (!searchQuery.trim()) return true
+    // Handle multiple possible data structures
+    const doctorName = (
+      a.doctor?.user?.name || 
+      a.doctor?.name || 
+      a.doctorName || 
+      ''
+    ).toLowerCase().trim()
+    return doctorName.includes(searchQuery.toLowerCase().trim())
+  })
+
+  // NEW FEATURE: Highlight search matches
+  const isSearching = searchQuery.trim().length > 0
 
   if (loading) {
     return (
@@ -146,9 +165,39 @@ export default function Appointments() {
         ))}
       </div>
 
+      {/* NEW FEATURE: Doctor Search Input */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Search size={18} className="text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Search doctor by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+              title="Clear search"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        {isSearching && (
+          <p className="text-xs text-gray-500 mt-2">
+            Found {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map(app => (
-          <div key={app._id} className="card p-5 border border-gray-100 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group">
+        {filteredAppointments.map(app => (
+          <div key={app._id} className={`card p-5 border shadow-sm hover:border-blue-300 hover:shadow-md transition-all group ${
+            isSearching ? 'border-blue-300 bg-blue-50 dark:bg-opacity-10' : 'border-gray-100'
+          }`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shadow-inner">
@@ -228,12 +277,40 @@ export default function Appointments() {
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {filteredAppointments.length === 0 && (
           <div className="col-span-full py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
             <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No appointments found</h3>
-            <p className="text-gray-500 text-sm mb-4">You have no {filter.toLowerCase()} appointments.</p>
-            {filter !== 'All' && <button onClick={() => setFilter('All')} className="text-blue-600 font-semibold text-sm hover:underline">View All Appointments</button>}
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {isSearching ? 'No matching appointments' : 'No appointments found'}
+            </h3>
+            <p className="text-gray-500 text-sm mb-4">
+              {isSearching 
+                ? `No appointments found for doctor "${searchQuery}".`
+                : `You have no ${filter.toLowerCase()} appointments.`
+              }
+            </p>
+            {isSearching && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-blue-600 font-semibold text-sm hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+            {!isSearching && filter !== 'All' && (
+              <button 
+                onClick={() => {
+                  try {
+                    setFilter('All')
+                  } catch (err) {
+                    console.error('Filter error:', err)
+                  }
+                }} 
+                className="text-blue-600 font-semibold text-sm hover:underline"
+              >
+                View All Appointments
+              </button>
+            )}
           </div>
         )}
       </div>
