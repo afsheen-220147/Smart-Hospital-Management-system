@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin, Search } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +20,8 @@ export default function Appointments() {
   const [reportLoading, setReportLoading] = useState(false)
   // NEW FEATURE: Doctor Search
   const [searchQuery, setSearchQuery] = useState('')
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
 
   const handleSwitchType = async (app) => {
     if (String(app._id).startsWith('d')) return // demo data — skip

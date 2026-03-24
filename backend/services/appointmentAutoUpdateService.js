@@ -35,7 +35,7 @@ const parseTimeSlot = (date, timeSlot) => {
 const updateExpiredAppointments = async () => {
   try {
     const now = new Date();
-    console.log(`\n[${now.toISOString()}] Running appointment auto-update check...`);
+
 
     // Find all confirmed appointments where the appointment time has passed
     // We fetch all unfinished appointments and check each one individually
@@ -108,10 +108,9 @@ const updateExpiredAppointments = async () => {
             const template = emailTemplates.appointmentCancellation(emailData);
 
             await require('../utils/sendEmail')({
-              email: appointment.patient.email,
+              to: appointment.patient.email,
               subject: template.subject,
-              message: template.html,
-              isHtml: true
+              html: template.html
             });
 
             console.log(`✅ Cancellation notification email sent to ${appointment.patient.email}`);
@@ -126,7 +125,7 @@ const updateExpiredAppointments = async () => {
       }
     }
 
-    console.log(`✅ Appointment auto-update completed: ${updatedCount} cancelled, ${errorCount} errors\n`);
+
     return { updated: updatedCount, errors: errorCount };
   } catch (error) {
     console.error('Critical error in updateExpiredAppointments:', error);
@@ -147,7 +146,12 @@ const startAppointmentAutoUpdateJob = () => {
 
   // Run every 2 minutes
   cronJob = cron.schedule('*/2 * * * *', async () => {
-    await updateExpiredAppointments();
+    try {
+      await updateExpiredAppointments();
+    } catch (error) {
+      console.error('❌ Critical error in appointment auto-update cron job:', error);
+      // Don't rethrow - allow server to continue operating
+    }
   });
 
   console.log('✅ Appointment auto-update job started (runs every 2 minutes)');
