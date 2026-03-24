@@ -90,12 +90,23 @@ export default function Diagnosis() {
     try {
       setIsSaving(true)
 
+      let fileUrl = '';
+      if (selectedFile) {
+        try {
+          const uploadRes = await uploadFile(selectedFile, 'report');
+          fileUrl = uploadRes.url;
+        } catch (uploadErr) {
+          throw new Error('Failed to upload the attached file. Please try again.');
+        }
+      }
+
       const payload = {
         patient: patientId,
         appointment: selectedApptId,
         title: diag,
         description: rx + (notes ? `\n\nDoctor Notes: ${notes}` : ''),
-        recordType: selectedFile ? 'Lab Report' : recordType
+        recordType: selectedFile ? 'Lab Report' : recordType,
+        ...(fileUrl && { fileUrl })
       }
 
       // Create visit — backend auto-marks appointment as completed

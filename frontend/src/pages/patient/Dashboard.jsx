@@ -84,6 +84,7 @@ export default function PatientDashboard() {
   }, [user, isDemoUser])
 
   const stats = [
+    { label: 'All Appts', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'All Appointments', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Visits', value: isDemoUser ? 12 : visits.length, icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Lab Reports', value: isDemoUser ? 3 : 0, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -103,6 +104,7 @@ export default function PatientDashboard() {
       <div className="card bg-gradient-to-r from-blue-600 to-blue-800 text-white border-none shadow-lg !p-8">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Patient'}! 👋</h1>
         <p className="text-blue-100 mb-6 max-w-xl">
+          Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} total appointments.` : 'You have no appointments scheduled.'}
           Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} appointments.` : 'You have no appointments scheduled.'}
         </p>
         <div className="flex flex-wrap gap-4">
@@ -145,7 +147,15 @@ export default function PatientDashboard() {
             </div>
             <div className="p-5 space-y-4">
               {appointments.length > 0 ? (
-                appointments.map((a, i) => (
+                [...appointments].sort((a, b) => {
+                  const statusOrder = { confirmed: 1, pending: 2, completed: 3, cancelled: 4 };
+                  const orderA = statusOrder[a.status] || 99;
+                  const orderB = statusOrder[b.status] || 99;
+                  if (orderA === orderB) {
+                    return new Date(b.date) - new Date(a.date);
+                  }
+                  return orderA - orderB;
+                }).map((a, i) => (
                   <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl hover:border-blue-200 dark:hover:border-blue-700 hover:shadow-sm transition-all gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-bold text-lg shadow-inner">
