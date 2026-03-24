@@ -35,12 +35,15 @@ export default function PublicLayout() {
         <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                <HeartPulse size={18} className="text-white" />
+              <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg border-2 border-white mb-4">
+                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
               </div>
-              <span className="text-lg font-bold">MediCare+</span>
+              <span className="text-lg font-bold">NeoTherapy</span>
             </div>
-            <p className="text-blue-200 text-sm leading-relaxed max-w-xs">
+            <p className="text-blue-200 text-sm leading-relaxed max-w-xs italic mb-2">
+              “Care You Can Trust, Technology You Can Rely On.”
+            </p>
+            <p className="text-blue-300 text-xs leading-relaxed max-w-xs opacity-80">
               Smart healthcare at your fingertips. Book appointments, manage records, and connect with top doctors online.
             </p>
           </div>
@@ -57,14 +60,14 @@ export default function PublicLayout() {
             <h4 className="font-semibold mb-3 text-white/90">Contact</h4>
             <ul className="space-y-2 text-sm text-blue-200">
               <li>📞 +91 1800-000-0000</li>
-              <li>✉️ care@medicare.com</li>
+              <li>✉️ care@neotherapy.com</li>
               <li>📍 123 Healthcare Ave, City</li>
               <li>🕒 24/7 Emergency</li>
             </ul>
           </div>
         </div>
         <div className="border-t border-white/10 text-center py-4 text-sm text-blue-300">
-          © {new Date().getFullYear()} MediCare+ Hospital. All rights reserved.
+          © {new Date().getFullYear()} NeoTherapy Hospital. All rights reserved.
         </div>
       </footer>
     </div>

@@ -133,8 +133,8 @@ export default function ForgotPassword() {
     <div className="min-h-[calc(100vh-70px)] flex items-center justify-center p-4 bg-gray-50 animate-fadeIn">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
-            <HeartPulse size={32} className="text-white" />
+          <div className="w-20 h-20 rounded-full overflow-hidden shadow-xl mx-auto mb-4 border-2 border-white">
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Reset Password</h1>
           <p className="text-gray-500 mt-2">

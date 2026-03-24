@@ -1,19 +1,27 @@
-import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Calendar, Clock, Video, FileText, CheckCircle, XCircle, User, X, Activity, Stethoscope, Microscope, Download, AlertCircle, MapPin, Search } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { showError } from '../../utils/toast'
+import CancelAppointmentModal from '../../components/appointments/CancelAppointmentModal'
+
+const POLLING_INTERVAL = 15000; // Poll every 15 seconds for sync
 
 export default function Appointments() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false) // ✅ Track refresh separately
   const [filter, setFilter] = useState('All')
   const [reportModal, setReportModal] = useState(null) // holds appointment data for the modal
   const [reportRecords, setReportRecords] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
+  // NEW FEATURE: Doctor Search
+  const [searchQuery, setSearchQuery] = useState('')
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
 
   const handleSwitchType = async (app) => {
     if (String(app._id).startsWith('d')) return // demo data — skip
@@ -27,17 +35,32 @@ export default function Appointments() {
     }
   }
 
-  const handleCancel = async (id) => {
-    if (String(id).startsWith('d')) {
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'cancelled' } : a))
-      return
-    }
-    try {
-      await api.put(`/appointments/${id}`, { status: 'cancelled' })
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'cancelled' } : a))
-    } catch (err) {
-      console.error('Cancellation failed:', err)
-    }
+  // Open cancel modal for appointment
+  const handleCancelClick = (appointment) => {
+    setAppointmentToCancel(appointment)
+    setCancelModalOpen(true)
+  }
+
+  // Close cancel modal
+  const handleCloseCancelModal = () => {
+    setCancelModalOpen(false)
+    setAppointmentToCancel(null)
+  }
+
+  // Handle successful cancellation - ✅ NOW OPTIMISTIC
+  const handleCancelSuccess = (updatedAppointment) => {
+    // ✅ OPTIMISTIC UPDATE - Update UI immediately (no waiting for API)
+    setAppointments(prev => prev.map(a => 
+      a._id === updatedAppointment._id 
+        ? { 
+            ...a, 
+            status: 'cancelled', 
+            cancelReason: updatedAppointment.cancelReason, 
+            cancelledBy: updatedAppointment.cancelledBy || 'patient' 
+          } 
+        : a
+    ))
+    handleCloseCancelModal()
   }
 
   const handleViewReport = async (appointment) => {
@@ -57,67 +80,100 @@ export default function Appointments() {
     }
   }
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true)
-        let realAppts = []
-        if (user?._id || user?.id) {
-          const res = await api.get(`/appointments/patient/${user._id || user.id}`)
-          realAppts = res.data.data || []
-        }
-
-        // Combine with Demo Data for John Doe
-        if (user?.email === 'john@example.com') {
-          const demoAppts = [
-            { 
-              _id: 'd1',
-              doctor: { user: { name: 'Ravi Kumar' }, specialization: 'Cardiologist' }, 
-              date: '2026-03-12', 
-              timeSlot: '10:30 AM', 
-              status: 'confirmed', 
-              type: 'Consultation',
-              reason: 'Routine Checkup'
-            },
-            { 
-              _id: 'd2',
-              doctor: { user: { name: 'Priya Sharma' }, specialization: 'Neurologist' }, 
-              date: '2026-03-15', 
-              timeSlot: '02:00 PM', 
-              status: 'pending', 
-              type: 'Online Call',
-              reason: 'Migraine tracking'
-            },
-            { 
-              _id: 'd3',
-              doctor: { user: { name: 'Arjun Mehta' }, specialization: 'Orthopedic' }, 
-              date: '2026-02-28', 
-              timeSlot: '11:00 AM', 
-              status: 'completed', 
-              type: 'Consultation',
-              reason: 'Knee Pain'
-            }
-          ]
-          setAppointments([...demoAppts, ...realAppts])
-        } else {
-          setAppointments(realAppts)
-        }
-      } catch (err) {
-        showError('Failed to load appointments.')
-      } finally {
-        setLoading(false)
+  // ✅ Memoized fetch with showRefreshing parameter
+  const fetchAppointments = useCallback(async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) setRefreshing(true)
+      else setLoading(true)
+      
+      let realAppts = []
+      if (user?._id || user?.id) {
+        const res = await api.get(`/appointments/patient/${user._id || user.id}`)
+        realAppts = res.data.data || []
       }
-    }
 
-    if (user) fetchAppointments()
+      // Combine with Demo Data for John Doe
+      if (user?.email === 'john@example.com') {
+        const demoAppts = [
+          { 
+            _id: 'd1',
+            doctor: { user: { name: 'Ravi Kumar' }, specialization: 'Cardiologist' }, 
+            date: '2026-03-12', 
+            timeSlot: '10:30 AM', 
+            status: 'confirmed', 
+            type: 'Consultation',
+            reason: 'Routine Checkup'
+          },
+          { 
+            _id: 'd2',
+            doctor: { user: { name: 'Priya Sharma' }, specialization: 'Neurologist' }, 
+            date: '2026-03-15', 
+            timeSlot: '02:00 PM', 
+            status: 'pending', 
+            type: 'Online Call',
+            reason: 'Migraine tracking'
+          },
+          { 
+            _id: 'd3',
+            doctor: { user: { name: 'Arjun Mehta' }, specialization: 'Orthopedic' }, 
+            date: '2026-02-28', 
+            timeSlot: '11:00 AM', 
+            status: 'completed', 
+            type: 'Consultation',
+            reason: 'Knee Pain'
+          }
+        ]
+        setAppointments([...demoAppts, ...realAppts])
+      } else {
+        setAppointments(realAppts)
+      }
+    } catch (err) {
+      console.error('Error fetching appointments:', err)
+      showError('Failed to load appointments.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [user])
+
+  // ✅ POLLING: Auto-sync appointments every 15 seconds + cleanup
+  useEffect(() => {
+    if (user) {
+      // Initial fetch
+      fetchAppointments()
+      
+      // Setup polling for sync
+      const interval = setInterval(() => {
+        fetchAppointments(true) // showRefreshing=true, doesn't block UI
+      }, POLLING_INTERVAL)
+      
+      return () => clearInterval(interval)
+    }
+  }, [fetchAppointments, user])
 
   const filtered = appointments.filter(a => {
     if (filter === 'All') return true
-    const backendStatus = a.status.toLowerCase()
+    const backendStatus = (a.status || '').toLowerCase()
     if (filter === 'Upcoming') return backendStatus === 'pending' || backendStatus === 'confirmed'
     return backendStatus === filter.toLowerCase()
   })
+
+  // NEW FEATURE: Doctor Search - Filter appointments by doctor name
+  const filteredByStatus = filtered
+  const filteredAppointments = filteredByStatus.filter(a => {
+    if (!searchQuery.trim()) return true
+    // Handle multiple possible data structures
+    const doctorName = (
+      a.doctor?.user?.name || 
+      a.doctor?.name || 
+      a.doctorName || 
+      ''
+    ).toLowerCase().trim()
+    return doctorName.includes(searchQuery.toLowerCase().trim())
+  })
+
+  // NEW FEATURE: Highlight search matches
+  const isSearching = searchQuery.trim().length > 0
 
   if (loading) {
     return (
@@ -146,9 +202,39 @@ export default function Appointments() {
         ))}
       </div>
 
+      {/* NEW FEATURE: Doctor Search Input */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Search size={18} className="text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Search doctor by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+              title="Clear search"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        {isSearching && (
+          <p className="text-xs text-gray-500 mt-2">
+            Found {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map(app => (
-          <div key={app._id} className="card p-5 border border-gray-100 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group">
+        {filteredAppointments.map(app => (
+          <div key={app._id} className={`card p-5 border shadow-sm hover:border-blue-300 hover:shadow-md transition-all group ${
+            isSearching ? 'border-blue-300 bg-blue-50 dark:bg-opacity-10' : 'border-gray-100'
+          }`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shadow-inner">
@@ -171,7 +257,7 @@ export default function Appointments() {
 
             <div className="space-y-2 mb-5">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar size={16} className="text-gray-400" /> <span className="font-medium">{new Date(app.date).toLocaleDateString()}</span>
+                <Calendar size={16} className="text-gray-400" /> <span className="font-medium">{new Date(app.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Clock size={16} className="text-gray-400" /> <span className="font-medium">{app.timeSlot}</span>
@@ -188,6 +274,17 @@ export default function Appointments() {
               </div>
             </div>
 
+            {String(app.status).toLowerCase() === 'cancelled' && (
+              <div className="mb-4 p-3 rounded-lg border border-red-100 bg-red-50">
+                <p className="text-xs font-semibold text-red-700">
+                  {app.cancelledBy === 'patient' ? 'Cancelled by you' : app.cancelledBy === 'doctor' ? 'Cancelled by doctor' : app.cancelledBy === 'admin' ? 'Cancelled by admin' : 'Cancelled by system'}
+                </p>
+                {(app.cancelReason || app.cancellationReason) && (
+                  <p className="text-xs text-red-700 mt-1 italic">"{app.cancelReason || app.cancellationReason}"</p>
+                )}
+              </div>
+            )}
+
             <div className="pt-4 border-t border-gray-100 flex gap-2">
               {(app.status === 'pending' || app.status === 'confirmed') && (
                 <>
@@ -203,7 +300,7 @@ export default function Appointments() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleCancel(app._id)}
+                    onClick={() => handleCancelClick(app)}
                     className="flex-1 px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-xl text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-1">
                     <XCircle size={14} /> Cancel
                   </button>
@@ -228,15 +325,51 @@ export default function Appointments() {
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {filteredAppointments.length === 0 && (
           <div className="col-span-full py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
             <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No appointments found</h3>
-            <p className="text-gray-500 text-sm mb-4">You have no {filter.toLowerCase()} appointments.</p>
-            {filter !== 'All' && <button onClick={() => setFilter('All')} className="text-blue-600 font-semibold text-sm hover:underline">View All Appointments</button>}
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {isSearching ? 'No matching appointments' : 'No appointments found'}
+            </h3>
+            <p className="text-gray-500 text-sm mb-4">
+              {isSearching 
+                ? `No appointments found for doctor "${searchQuery}".`
+                : `You have no ${filter.toLowerCase()} appointments.`
+              }
+            </p>
+            {isSearching && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-blue-600 font-semibold text-sm hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+            {!isSearching && filter !== 'All' && (
+              <button 
+                onClick={() => {
+                  try {
+                    setFilter('All')
+                  } catch (err) {
+                    console.error('Filter error:', err)
+                  }
+                }} 
+                className="text-blue-600 font-semibold text-sm hover:underline"
+              >
+                View All Appointments
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Cancel Appointment Modal */}
+      <CancelAppointmentModal
+        appointment={appointmentToCancel}
+        isOpen={cancelModalOpen}
+        onClose={handleCloseCancelModal}
+        onCancelSuccess={handleCancelSuccess}
+      />
 
       {/* View Report Modal */}
       {reportModal && (
@@ -247,7 +380,7 @@ export default function Appointments() {
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2"><FileText size={20} /> Appointment Report</h2>
                 <p className="text-blue-100 text-sm mt-1">
-                  Dr. {reportModal.doctor?.user?.name || reportModal.doctor?.name || 'Unknown'} • {new Date(reportModal.date).toLocaleDateString()} • {reportModal.timeSlot}
+                  Dr. {reportModal.doctor?.user?.name || reportModal.doctor?.name || 'Unknown'} • {new Date(reportModal.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })} • {reportModal.timeSlot}
                 </p>
               </div>
               <button onClick={() => setReportModal(null)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">

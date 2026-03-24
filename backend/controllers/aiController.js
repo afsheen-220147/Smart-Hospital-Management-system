@@ -71,7 +71,7 @@ const getSmartRecommendation = async (req, res) => {
       const appointmentCount = await Appointment.countDocuments({
         doctor: doc._id,
         date: preferredDate || { $gte: new Date() },
-        status: { $in: ['scheduled', 'confirmed'] }
+        status: { $in: ['confirmed', 'in-progress'] }
       });
       return { ...doc, appointmentCount };
     }));
@@ -264,7 +264,7 @@ const getLoadBalancedDoctor = async (req, res) => {
       const appointmentCount = await Appointment.countDocuments({
         doctor: doc._id,
         date: { $gte: new Date() },
-        status: { $in: ['scheduled', 'confirmed'] }
+        status: { $in: ['confirmed', 'in-progress'] }
       });
       return { ...doc, appointmentCount, maxCapacity: 20 };
     }));

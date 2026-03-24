@@ -9,6 +9,7 @@ const availabilityService = require('../services/availabilityService');
 const waitlistService = require('../services/waitlistService');
 const noShowPredictionService = require('../services/noShowPredictionService');
 const notificationService = require('../services/notificationService');
+const adaptiveSchedulingService = require('../services/adaptiveSchedulingService');
 
 // ==================== SLOT MANAGEMENT ====================
 
@@ -126,18 +127,30 @@ exports.getSmartSuggestions = asyncHandler(async (req, res) => {
  * @access  Private (Patient)
  */
 exports.bookSmartAppointment = asyncHandler(async (req, res) => {
-  const { doctorId, date, timeSlot, visitType, reason, notes, consultationType } = req.body;
+  const { doctorId, date, timeSlot, session, visitType, reason, notes, consultationType } = req.body;
 
   const result = await schedulingService.bookSmartAppointment({
     patientId: req.user.id,
     doctorId,
     date: new Date(date),
     timeSlot,
+    session,
     visitType,
     reason,
     notes,
     consultationType
   });
+
+  // Patient was moved to the smart waitlist (session at capacity or overloaded)
+  if (result.waitlisted) {
+    return res.status(202).json({
+      success: true,
+      waitlisted: true,
+      message: result.message || 'Session capacity reached. Added to smart waitlist.',
+      probability: result.probability,
+      waitlistEntry: result.waitlistEntry
+    });
+  }
 
   res.status(201).json({
     success: true,
@@ -582,6 +595,88 @@ exports.sendBulkReminders = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: `Sent ${result.count} reminders`,
+    data: result
+  });
+});
+
+// ==================== REAL-TIME DELAY ADJUSTMENT ====================
+
+/**
+ * @desc    Apply a real-time delay adjustment for a doctor on a given day
+ *          Shifts estimatedStartTime for all remaining appointments forward
+ *          and sends delay notification emails to all affected patients.
+ * @route   POST /api/v1/scheduling/delay/:doctorId
+ * @access  Private (Doctor/Admin)
+ */
+exports.applyDelay = asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const { date, delayMinutes } = req.body;
+
+  if (!date || delayMinutes === undefined || delayMinutes === null) {
+    res.status(400);
+    throw new Error('date and delayMinutes are required');
+  }
+
+  const parsedDelay = parseInt(delayMinutes, 10);
+  if (isNaN(parsedDelay)) {
+    res.status(400);
+    throw new Error('delayMinutes must be a valid integer');
+  }
+
+  const result = await adaptiveSchedulingService.applyDelayAdjustment(
+    doctorId,
+    new Date(date),
+    parsedDelay
+  );
+
+  res.status(200).json({
+    success: true,
+    message: `Delay of ${parsedDelay} min applied. ${result.affectedAppointments} patient(s) notified.`,
+    data: result
+  });
+});
+
+// ==================== SESSION STATUS & LOAD CONTROL ====================
+
+/**
+ * @desc    Get live session capacity status for a doctor on a specific day
+ *          Used by the dashboard to show slot utilisation and detect closures
+ * @route   GET /api/v1/scheduling/session-status/:doctorId
+ * @access  Public
+ */
+exports.getSessionStatus = asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const { date = new Date().toISOString(), session = 'morning' } = req.query;
+
+  const status = await adaptiveSchedulingService.getSessionStatus(
+    doctorId,
+    new Date(date),
+    session
+  );
+
+  res.status(200).json({
+    success: true,
+    data: status
+  });
+});
+
+/**
+ * @desc    Detect if a doctor is in an overload / excessive-delay state for a day
+ *          Returns overloaded: true + human-readable reason if booking should be blocked
+ * @route   GET /api/v1/scheduling/overload/:doctorId
+ * @access  Private (Doctor/Admin)
+ */
+exports.checkOverload = asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const { date = new Date().toISOString() } = req.query;
+
+  const result = await adaptiveSchedulingService.detectOverload(
+    doctorId,
+    new Date(date)
+  );
+
+  res.status(200).json({
+    success: true,
     data: result
   });
 });

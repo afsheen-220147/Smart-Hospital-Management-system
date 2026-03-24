@@ -93,17 +93,17 @@ export default function Login() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center">
-              <HeartPulse size={24} className="text-white" />
+            <div className="w-16 h-16 rounded-full overflow-hidden shadow-2xl border-2 border-white/20">
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
             </div>
             <div>
-              <p className="text-white font-bold text-lg leading-none">MediCare+</p>
+              <p className="text-white font-bold text-lg leading-none">NeoTherapy</p>
               <p className="text-blue-200 text-xs">Smart Hospital Portal</p>
             </div>
           </div>
 
           <h2 className="text-white text-4xl font-bold leading-tight mb-4">
-            Your health,<br />our priority.
+            Care You Can Trust,<br />Technology You Can Rely On.
           </h2>
           <p className="text-blue-200 text-base leading-relaxed max-w-sm">
             Manage appointments, access medical records, and connect with your care team — all in one place.
@@ -127,12 +127,12 @@ export default function Login() {
         <div className="w-full max-w-md">
 
           {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <HeartPulse size={22} className="text-white" />
+          <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
+            <div className="w-12 h-12 rounded-full overflow-hidden shadow-md border border-gray-200">
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
             </div>
             <div>
-              <p className="font-bold text-gray-900 leading-none">MediCare+</p>
+              <p className="font-bold text-gray-900 leading-none">NeoTherapy</p>
               <p className="text-gray-500 text-xs">Smart Hospital Portal</p>
             </div>
           </div>
