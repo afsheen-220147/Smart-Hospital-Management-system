@@ -50,6 +50,12 @@ const addToWaitlist = async (params) => {
     priority
   });
 
+  // Fire-and-forget: send waitlist confirmation with queue position + probability score
+  // (probability may be 0/null if not yet set by adaptiveSchedulingService)
+  notificationService.sendWaitlistConfirmation(waitlistEntry._id).catch((err) =>
+    console.error('Waitlist confirmation email error:', err.message)
+  );
+
   return waitlistEntry;
 };
 
@@ -232,8 +238,8 @@ const bookFromWaitlist = async (waitlistId, timeSlot) => {
   waitlistEntry.bookedAppointmentId = appointment._id;
   await waitlistEntry.save();
 
-  // Send confirmation
-  await notificationService.sendAppointmentConfirmation(appointment._id);
+  // Send waitlist promotion email ("Your appointment is confirmed")
+  await notificationService.sendWaitlistPromotion(appointment._id);
 
   return {
     appointment,
@@ -305,6 +311,63 @@ const autoAllocateSlot = async (appointmentId) => {
   );
 };
 
+/**
+ * FEATURE 3: Promote waitlisted patient to confirmed when slot becomes free
+ * Called when an appointment is cancelled or no-show
+ * @param {string} doctorId 
+ * @param {Date} date 
+ * @param {string} timeSlot 
+ * @returns {Promise<Object>}
+ */
+const promoteWaitlistedPatient = async (doctorId, date, timeSlot) => {
+  try {
+    // Find the next waitlisted appointment for this doctor/date/timeSlot (FIFO - oldest first)
+    const waitlistedAppointment = await Appointment.findOne({
+      doctor: doctorId,
+      date: {
+        $gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+        $lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+      },
+      timeSlot: timeSlot,
+      isWaitlisted: true,
+      status: 'pending'
+    })
+    .sort({ createdAt: 1 })
+    .populate('patient', 'name email');
+
+    if (!waitlistedAppointment) {
+      console.log('No waitlisted patient found for this slot');
+      return { success: false, message: 'No waitlisted patient found' };
+    }
+
+    // Promote to confirmed status - remove waitlist flag
+    waitlistedAppointment.isWaitlisted = false;
+    waitlistedAppointment.status = 'confirmed';
+    await waitlistedAppointment.save();
+
+    console.log(`✅ Promoted patient ${waitlistedAppointment.patient.name} to confirmed status`);
+
+    // Send notification to patient
+    try {
+      notificationService.sendWaitlistPromotion(waitlistedAppointment._id).catch((err) =>
+        console.error('Notification error:', err.message)
+      );
+    } catch (err) {
+      console.error('Error sending promotion notification:', err);
+    }
+
+    return {
+      success: true,
+      promotedAppointment: waitlistedAppointment,
+      patientName: waitlistedAppointment.patient.name,
+      patientEmail: waitlistedAppointment.patient.email
+    };
+  } catch (error) {
+    console.error('Error promoting waitlisted patient:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   addToWaitlist,
   getPatientWaitlist,
@@ -314,5 +377,6 @@ module.exports = {
   bookFromWaitlist,
   expireOldEntries,
   getWaitlistStats,
-  autoAllocateSlot
+  autoAllocateSlot,
+  promoteWaitlistedPatient
 };

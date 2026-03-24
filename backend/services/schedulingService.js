@@ -34,13 +34,48 @@ const bookSmartAppointment = async (params) => {
     throw new Error('Missing required fields');
   }
 
+  // NORMALIZE DATE: Convert to midnight UTC on the provided date
+  // Frontend sends date as "2026-03-24" (local date string in IST)
+  // Store as UTC midnight of that date for consistent querying
+  let normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+
   // Get duration for visit type
   const duration = await availabilityService.getDurationForVisitType(doctorId, visitType);
+
+  // Calculate end time first to check for overlaps
+  const endTime = slotGenerator.calculateEndTime(timeSlot, duration);
+
+  // ✅ FEATURE 1: Check if patient already has ANY appointment at this time slot across ALL doctors
+  const patientTimeSlotConflict = await Appointment.find({
+    patient: patientId,
+    date: {
+      $gte: new Date(normalizedDate.getFullYear(), normalizedDate.getMonth(), normalizedDate.getDate()),
+      $lt: new Date(normalizedDate.getFullYear(), normalizedDate.getMonth(), normalizedDate.getDate() + 1)
+    },
+    status: { $in: ['pending', 'confirmed', 'in-progress'] },
+    _id: { $ne: null }
+  }).populate({
+    path: 'doctor',
+    populate: { path: 'user', select: 'name' }
+  });
+
+  // Check if requested time slot overlaps with ANY of patient's appointments
+  const conflictingAppt = patientTimeSlotConflict.find(apt => {
+    const aptStart = apt.timeSlot;
+    const aptEnd = apt.endTime || apt.timeSlot;
+    return !(endTime <= aptStart || timeSlot >= aptEnd);
+  });
+
+  if (conflictingAppt) {
+    const conflictingDoctorName = conflictingAppt.doctor?.user?.name || 'a doctor';
+    throw new Error(`You already have an appointment with Dr. ${conflictingDoctorName} at this time. Please change the timings.`);
+  }
 
   // Check slot availability
   const availability = await availabilityService.checkSlotAvailability(
     doctorId,
-    date,
+    normalizedDate,
     timeSlot,
     duration
   );
@@ -53,19 +88,16 @@ const bookSmartAppointment = async (params) => {
   const prediction = await noShowPredictionService.predictNoShow({
     patientId,
     doctorId,
-    appointmentDate: date,
+    appointmentDate: normalizedDate,
     timeSlot,
     visitType
   });
-
-  // Calculate end time
-  const endTime = slotGenerator.calculateEndTime(timeSlot, duration);
 
   // Create the appointment
   const appointment = await Appointment.create({
     patient: patientId,
     doctor: doctorId,
-    date,
+    date: normalizedDate,
     timeSlot,
     endTime,
     duration,

@@ -45,7 +45,14 @@ const {
   parseNaturalLanguageRequest,
   
   // Notifications
-  sendBulkReminders
+  sendBulkReminders,
+
+  // Real-time delay adjustment
+  applyDelay,
+
+  // Session status & load control
+  getSessionStatus,
+  checkOverload
 } = require('../controllers/schedulingController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -123,5 +130,17 @@ router.post('/notify-schedule-update', authorize('doctor'), asyncHandler(async (
 
 // Bulk reminders (for cron job or manual trigger)
 router.post('/send-reminders', authorize('admin'), sendBulkReminders);
+
+// ==================== REAL-TIME DELAY & LOAD CONTROL ====================
+
+// Apply delay adjustment: shifts patient estimated times + sends emails
+// Public session status: shows live capacity (used by booking UI to lock slots)
+router.get('/session-status/:doctorId', getSessionStatus);
+
+// Doctor/Admin delay report
+router.post('/delay/:doctorId', protect, authorize('doctor', 'admin'), applyDelay);
+
+// Overload detection endpoint
+router.get('/overload/:doctorId', protect, authorize('doctor', 'admin'), checkOverload);
 
 module.exports = router;
