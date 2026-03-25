@@ -200,31 +200,141 @@ const actionExecutors = {
 
   user_delete: async (payload, actionId) => {
     const { userId } = payload;
+    const sendEmail = require('../utils/sendEmail');
 
     const user = await User.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // If user is a doctor, delete doctor record
-    if (user.role === 'doctor') {
-      await Doctor.findOneAndDelete({ user: userId });
+    const userEmail = user.email;
+    const userName = user.name;
+    const userRole = user.role;
+
+    // Mark user as deleted instead of hard delete (soft delete)
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.deletionApprovalId = actionId;
+    await user.save();
+
+    // Cancel all pending appointments
+    const appointmentResult = await Appointment.updateMany(
+      {
+        $or: [{ patient: userId }, { doctor: userId }],
+        status: { $in: ['scheduled', 'pending', 'confirmed', 'in-progress'] }
+      },
+      {
+        status: 'cancelled',
+        cancelledBy: 'system',
+        cancelReason: 'User account has been deleted by hospital administration',
+        cancelledAt: new Date()
+      }
+    );
+
+    // If user is a doctor, deactivate doctor record
+    if (userRole === 'doctor') {
+      await Doctor.findOneAndUpdate(
+        { user: userId },
+        { isActive: false, deactivatedAt: new Date() }
+      );
     }
 
-    // If user is a patient, delete patient record
-    if (user.role === 'patient') {
-      await Patient.findOneAndDelete({ user: userId });
+    // If user is a patient, deactivate patient record
+    if (userRole === 'patient') {
+      await Patient.findOneAndUpdate(
+        { user: userId },
+        { isActive: false, deactivatedAt: new Date() }
+      );
     }
 
-    // Delete user
-    await User.findByIdAndDelete(userId);
+    // Send deletion notification email
+    try {
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 30px; text-align: center; }
+            .header h2 { margin: 0; font-size: 24px; }
+            .content { padding: 30px; }
+            .alert-box { background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .alert-title { color: #991b1b; font-weight: bold; font-size: 16px; margin: 0 0 10px 0; }
+            .alert-content { color: #7f1d1d; font-size: 14px; line-height: 1.6; margin: 0; }
+            .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+            .contact-box { background-color: #dbeafe; border: 2px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; text-align: center; }
+            .contact-box a { color: #1e40af; font-weight: bold; text-decoration: none; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>🔒 Account Deleted</h2>
+            </div>
+            <div class="content">
+              <p>Dear ${userName},</p>
+              
+              <p>We regret to inform you that your account with <strong>${process.env.HOSPITAL_NAME || 'NeoTherapy Hospital'}</strong> has been deleted by the hospital administration.</p>
+              
+              <div class="alert-box">
+                <p class="alert-title">⚠️ Your Status</p>
+                <p class="alert-content">
+                  <strong>Email:</strong> ${userEmail}<br>
+                  <strong>Status:</strong> Account Deleted<br>
+                  <strong>Effective Date:</strong> ${new Date().toLocaleDateString('en-IN')}<br>
+                  <strong>Reason:</strong> Administrative Decision
+                </p>
+              </div>
 
-    console.log(`✓ User ${userId} deleted successfully`);
+              <p><strong>What This Means:</strong></p>
+              <ul>
+                <li>You will no longer be able to log in to the hospital portal</li>
+                <li>All your scheduled appointments have been cancelled</li>
+                <li>Your medical records and profile are no longer accessible through the system</li>
+              </ul>
+
+              <div class="contact-box">
+                <p><strong>Questions or Need Assistance?</strong></p>
+                <p>Please contact our administration office:</p>
+                <p>📧 <a href="mailto:admin@hospital.com">admin@hospital.com</a></p>
+                <p>📞 ${process.env.HOSPITAL_PHONE || '+91-XXXX-XXXX'}</p>
+              </div>
+
+              <p>We appreciate your understanding and wish you well with your healthcare journey.</p>
+            </div>
+            <div class="footer">
+              <p><strong>${process.env.HOSPITAL_NAME || 'NeoTherapy Hospital'}</strong><br>Quality Healthcare, Compassionate Care</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendEmail({
+        to: userEmail,
+        subject: `Account Deleted - ${process.env.HOSPITAL_NAME || 'NeoTherapy Hospital'}`,
+        html: emailHtml
+      });
+      console.log(`✓ Deletion notification email sent to ${userEmail}`);
+    } catch (emailErr) {
+      console.error('⚠️ Failed to send deletion email:', emailErr.message);
+    }
+
+    const message = `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} account deleted successfully. Marked as deleted, ${appointmentResult.modifiedCount} appointments cancelled. Notification email sent.`;
+    console.log(`✓ ${message}`);
 
     return {
       success: true,
-      message: 'User deleted successfully',
-      details: { userId, role: user.role }
+      message,
+      details: {
+        userId,
+        email: userEmail,
+        role: userRole,
+        appointmentsCancelled: appointmentResult.modifiedCount,
+        deletedAt: new Date()
+      }
     };
   }
 };
