@@ -291,7 +291,7 @@ export default function Register() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full shadow-xl mb-4 overflow-hidden border-2 border-white">
-            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
+            <img src="/register-logo.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
           <p className="text-gray-500 mt-1.5 text-sm">NeoTherapy · Smart Hospital Portal</p>

@@ -36,7 +36,7 @@ export default function PublicLayout() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg border-2 border-white mb-4">
-                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
               </div>
               <span className="text-lg font-bold">NeoTherapy</span>
             </div>

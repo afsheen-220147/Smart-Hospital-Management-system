@@ -134,7 +134,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-full overflow-hidden shadow-xl mx-auto mb-4 border-2 border-white">
-            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Reset Password</h1>
           <p className="text-gray-500 mt-2">

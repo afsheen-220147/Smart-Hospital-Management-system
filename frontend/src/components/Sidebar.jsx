@@ -68,7 +68,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
         {!isCollapsed && (
           <div className="flex items-center gap-2.5">
             <div className="w-12 h-12 rounded-full overflow-hidden shadow-inner border-2 border-gray-50 dark:border-gray-800">
-              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">NeoTherapy</p>
@@ -79,7 +79,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
         {isCollapsed && (
           <div className="w-12 h-12 rounded-full overflow-hidden shadow-inner border border-gray-100 dark:border-gray-800">
-            <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+            <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
         )}
 

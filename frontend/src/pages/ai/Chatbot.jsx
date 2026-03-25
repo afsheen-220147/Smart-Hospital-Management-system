@@ -14,7 +14,7 @@ const suggestions = [
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([
-    { from: 'bot', text: "Hello! I'm NeoTherapy AI Assistant powered by advanced AI. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    { from: 'bot', text:"Hello! I'm NeoTherapy AI Assistant powered by advanced AI. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   ])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -58,7 +58,7 @@ export default function Chatbot() {
       console.error('Chat error:', error)
       setMessages(p => [...p, { 
         from: 'bot', 
-        text: "I apologize, but I'm having trouble processing your request. Please try again or contact our support team.", 
+        text:"I apologize, but I'm having trouble processing your request. Please try again or contact our support team.", 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }])
     } finally {

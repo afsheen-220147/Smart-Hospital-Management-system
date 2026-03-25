@@ -89,7 +89,7 @@ export default function DoctorChatbot() {
     
     switch (action) {
       case 'today':
-        setMessages(prev => [...prev, { from: 'user', text: "Show me today's appointments", time }])
+        setMessages(prev => [...prev, { from: 'user', text:"Show me today's appointments", time }])
         setTyping(true)
         await new Promise(r => setTimeout(r, 800))
         setTyping(false)
@@ -97,7 +97,7 @@ export default function DoctorChatbot() {
         if (todayAppointments.length === 0) {
           setMessages(prev => [...prev, { 
             from: 'bot', 
-            text: "📅 You have no appointments scheduled for today. Would you like me to check your upcoming schedule?",
+            text:"📅 You have no appointments scheduled for today. Would you like me to check your upcoming schedule?",
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }])
         } else {
@@ -118,7 +118,7 @@ export default function DoctorChatbot() {
         break
         
       case 'next':
-        setMessages(prev => [...prev, { from: 'user', text: "Who's my next patient?", time }])
+        setMessages(prev => [...prev, { from: 'user', text:"Who's my next patient?", time }])
         setTyping(true)
         await new Promise(r => setTimeout(r, 600))
         setTyping(false)
@@ -133,14 +133,14 @@ export default function DoctorChatbot() {
         } else {
           setMessages(prev => [...prev, {
             from: 'bot',
-            text: "No upcoming appointments for now. Your schedule is clear! 🎉",
+            text:"No upcoming appointments for now. Your schedule is clear! 🎉",
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }])
         }
         break
         
       case 'summary':
-        setMessages(prev => [...prev, { from: 'user', text: "Give me a daily summary", time }])
+        setMessages(prev => [...prev, { from: 'user', text:"Give me a daily summary", time }])
         setTyping(true)
         await new Promise(r => setTimeout(r, 1000))
         setTyping(false)
@@ -204,25 +204,25 @@ export default function DoctorChatbot() {
       if (todayAppointments.length > 0) {
         return `You have ${todayAppointments.length} appointments today. Your next patient is ${todayAppointments[0]?.patient?.name} at ${todayAppointments[0]?.timeSlot}.`
       }
-      return "You don't have any appointments scheduled for today."
+      return"You don't have any appointments scheduled for today."
     }
     
     if (m.includes('patient') && m.includes('next')) {
       const next = todayAppointments[0]
       return next 
         ? `Your next patient is ${next.patient?.name} at ${next.timeSlot} for ${next.reason || 'consultation'}.`
-        : "No upcoming patients at the moment."
+        :"No upcoming patients at the moment."
     }
     
     if (m.includes('help') || m.includes('what can you')) {
-      return "I can help you with:\n• Viewing today's appointments\n• Finding your next patient\n• Getting a daily summary\n• Answering medical queries\n\nJust ask!"
+      return"I can help you with:\n• Viewing today's appointments\n• Finding your next patient\n• Getting a daily summary\n• Answering medical queries\n\nJust ask!"
     }
     
     if (m.includes('thank')) {
-      return "You're welcome, Doctor! Let me know if you need anything else. 😊"
+      return"You're welcome, Doctor! Let me know if you need anything else. 😊"
     }
     
-    return "I'm here to help! You can ask me about your appointments, schedule, or any medical queries."
+    return"I'm here to help! You can ask me about your appointments, schedule, or any medical queries."
   }
 
   if (user?.role !== 'doctor') return null

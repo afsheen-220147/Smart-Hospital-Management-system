@@ -94,11 +94,11 @@ export default function Login() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
             <div className="w-16 h-16 rounded-full overflow-hidden shadow-2xl border-2 border-white/20">
-              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-white font-bold text-lg leading-none">NeoTherapy</p>
-              <p className="text-blue-200 text-xs">Smart Hospital Portal</p>
+              <p className="text-blue-200 text-xs">on one click</p>
             </div>
           </div>
 
@@ -129,11 +129,11 @@ export default function Login() {
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
             <div className="w-12 h-12 rounded-full overflow-hidden shadow-md border border-gray-200">
-              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="font-bold text-gray-900 leading-none">NeoTherapy</p>
-              <p className="text-gray-500 text-xs">Smart Hospital Portal</p>
+              <p className="text-gray-500 text-xs">on one click</p>
             </div>
           </div>
 

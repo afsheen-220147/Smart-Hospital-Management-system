@@ -72,7 +72,7 @@ const CancellationBadge = ({ appointment, showReason = true }) => {
       </div>
       {showReason && cancelReason && (
         <p className="text-xs text-gray-600 mt-1 truncate max-w-xs">
-          "{cancelReason}"
+        "{cancelReason}"
         </p>
       )}
     </div>

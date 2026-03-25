@@ -12,7 +12,7 @@ export default function About() {
             <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-6">
                 <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
                     <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg border-2 border-white/30">
-                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
               </div>
                     <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">About Us</span>
                     <h1 className="text-4xl font-bold my-4">Next-Gen Healing, Available Today</h1>

@@ -175,7 +175,7 @@ export default function DoctorAppointments() {
         showSuccess(`Consultation started with ${appointment.patientName}`);
       } catch (err) {
         console.error("Start failed", err);
-        showError(err.response?.data?.message || "Failed to start consultation");
+        showError(err.response?.data?.message ||"Failed to start consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -191,7 +191,7 @@ export default function DoctorAppointments() {
         showSuccess(`Consultation paused. You can resume later.`);
       } catch (err) {
         console.error("Pause failed", err);
-        showError(err.response?.data?.message || "Failed to pause consultation");
+        showError(err.response?.data?.message ||"Failed to pause consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -207,7 +207,7 @@ export default function DoctorAppointments() {
         showSuccess(`Consultation resumed with ${appointment.patientName}`);
       } catch (err) {
         console.error("Resume failed", err);
-        showError(err.response?.data?.message || "Failed to resume consultation");
+        showError(err.response?.data?.message ||"Failed to resume consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -224,7 +224,7 @@ export default function DoctorAppointments() {
         // Don't close details immediately so doctor can upload report
       } catch (err) {
         console.error("End failed", err);
-        showError(err.response?.data?.message || "Failed to end consultation");
+        showError(err.response?.data?.message ||"Failed to end consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -362,7 +362,7 @@ export default function DoctorAppointments() {
           ${selectedId ? 'hidden md:flex' : 'flex'}
         `}>
           <div className="p-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider flex justify-between items-center sticky top-0">
-            <span>{dateMode === 'today' ? "Today's Queue" : dateMode.toUpperCase()} ({filteredAppointments.length})</span>
+            <span>{dateMode === 'today' ?"Today's Queue" : dateMode.toUpperCase()} ({filteredAppointments.length})</span>
             <div className="hidden md:block">
               <select 
                 value={statusFilter} 
