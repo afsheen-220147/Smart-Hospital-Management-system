@@ -1,4 +1,5 @@
 const Patient = require('../models/Patient');
+const Appointment = require('../models/Appointment');
 const asyncHandler = require('express-async-handler');
 const adminApprovalController = require('./adminApprovalController');
 
@@ -8,10 +9,68 @@ const adminApprovalController = require('./adminApprovalController');
 exports.getPatients = asyncHandler(async (req, res, next) => {
   const patients = await Patient.find().populate('user', 'name email');
 
+  // Dynamically calculate attendance history from appointments
+  const patientsWithHistory = await Promise.all(
+    patients.map(async (patient) => {
+      try {
+        const patientObj = patient.toObject();
+        
+        // Check if patient has a valid user reference
+        if (!patient.user || !patient.user._id) {
+          // Return patient with empty attendance history if no user is linked
+          patientObj.attendanceHistory = {
+            totalAppointments: 0,
+            completedAppointments: 0,
+            cancelledAppointments: 0,
+            noShowAppointments: 0,
+            lastAppointmentDate: null,
+            averageNoShowRate: 0
+          };
+          return patientObj;
+        }
+
+        // Get all appointments for this patient
+        const appointments = await Appointment.find({ patient: patient.user._id }).sort({ date: -1 });
+        
+        // Calculate statistics
+        const totalAppointments = appointments.length;
+        const completedAppointments = appointments.filter(a => a.status === 'completed').length;
+        const lastAppointment = appointments[0]; // Already sorted by date descending
+        
+        // Update the patient object with calculated history
+        patientObj.attendanceHistory = {
+          totalAppointments: totalAppointments,
+          completedAppointments: completedAppointments,
+          cancelledAppointments: appointments.filter(a => a.status === 'cancelled').length,
+          noShowAppointments: appointments.filter(a => a.status === 'no-show').length,
+          lastAppointmentDate: lastAppointment ? lastAppointment.date : null,
+          averageNoShowRate: totalAppointments > 0 
+            ? Math.round((appointments.filter(a => a.status === 'no-show').length / totalAppointments) * 100)
+            : 0
+        };
+        
+        return patientObj;
+      } catch (err) {
+        // If there's an error processing this patient, return with original data
+        console.error(`Error processing patient ${patient._id}:`, err);
+        const patientObj = patient.toObject();
+        patientObj.attendanceHistory = patientObj.attendanceHistory || {
+          totalAppointments: 0,
+          completedAppointments: 0,
+          cancelledAppointments: 0,
+          noShowAppointments: 0,
+          lastAppointmentDate: null,
+          averageNoShowRate: 0
+        };
+        return patientObj;
+      }
+    })
+  );
+
   res.status(200).json({
     success: true,
-    count: patients.length,
-    data: patients
+    count: patientsWithHistory.length,
+    data: patientsWithHistory
   });
 });
 

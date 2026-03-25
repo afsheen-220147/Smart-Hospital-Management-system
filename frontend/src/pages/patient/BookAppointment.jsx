@@ -40,8 +40,15 @@ export default function BookAppointment() {
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   }
-
-  const handleBook = async () => {
+4:56:02 pm [vite] http proxy error: /api/v1/auth/google-login?_t=1774437962609
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+4:56:17 pm [vite] http proxy error: /api/v1/auth/google-login?_t=1774437977000
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+  const handleBooking = async () => {
     try {
       setBookingLoading(true)
       setError(null)
