@@ -47,31 +47,27 @@ export default function Home() {
       appointments: 350
   })
 
-  // Presentation Scroll Lock Navigation
+  // Presentation Scroll Navigation - Refactored to allow natural scrolling
   const [isAtTop, setIsAtTop] = useState(true);
   const [isScrollUnlocked, setIsScrollUnlocked] = useState(false);
-  const isScrolling = useRef(false); // Guard: prevents multiple triggers during animation
+  const isScrolling = useRef(false);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    // Ensure body overflow is always auto (safeguard against previous locked state)
+    document.body.style.overflow = 'auto';
 
-    // Only update state AFTER any in-flight programmatic scroll finishes
     const handleScroll = () => {
-      if (isScrolling.current) return; // Ignore scroll events during our own animation
+      if (isScrolling.current) return;
       const atTop = window.scrollY < 50;
       setIsAtTop(atTop);
-      if (atTop) {
-        setIsScrollUnlocked(false);
-        document.body.style.overflow = 'hidden';
-      } else {
-        setIsScrollUnlocked(true);
-        // overflow is already 'auto' at this point (set by handleScrollDown after delay)
-      }
+      setIsScrollUnlocked(!atTop);
     };
+    
+    // Initial check
+    handleScroll();
 
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Global cleanup: FORCE UNLOCK scroll when navigating away (Navbar/Chatbot exceptions)
     return () => {
       window.removeEventListener('scroll', handleScroll);
       document.body.style.overflow = 'auto';
@@ -79,17 +75,14 @@ export default function Home() {
   }, []);
 
   const handleScrollDown = () => {
-    if (isScrolling.current) return; // Prevent double-click shake
-    const target = document.getElementById('services'); // "Our Specialties" section
+    if (isScrolling.current) return;
+    const target = document.getElementById('services');
     if (!target) return;
 
     isScrolling.current = true;
-    // Scroll first — overflow is still 'hidden' so no layout reflow
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Unlock overflow ONLY after scroll animation has had time to complete
     setTimeout(() => {
-      document.body.style.overflow = 'auto';
       setIsScrollUnlocked(true);
       setIsAtTop(false);
       isScrolling.current = false;
@@ -100,12 +93,9 @@ export default function Home() {
     if (isScrolling.current) return;
 
     isScrolling.current = true;
-    // Use scrollTo top:0 for a guaranteed pixel-perfect reset (no element offset ambiguity)
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Re-lock overflow ONLY after the scroll animation completes
     setTimeout(() => {
-      document.body.style.overflow = 'hidden';
       setIsScrollUnlocked(false);
       setIsAtTop(true);
       isScrolling.current = false;
