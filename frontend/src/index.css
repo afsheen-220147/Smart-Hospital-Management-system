@@ -32,7 +32,6 @@
 
   body,
   #root {
-    height: 100%;
     font-family: 'Inter', sans-serif;
   }
 
@@ -53,7 +52,8 @@
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -227,6 +227,9 @@
   border-color: #1e293b;
 }
 
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }

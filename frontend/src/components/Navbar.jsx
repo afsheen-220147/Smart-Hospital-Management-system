@@ -27,11 +27,11 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-            <HeartPulse size={18} className="text-white" />
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-md group-hover:shadow-lg transition-all duration-300">
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
           </div>
           <div>
-            <span className="text-base font-bold text-gray-900">MediCare<span className="text-blue-600">+</span></span>
+            <span className="text-base font-bold text-gray-900">Neo<span className="text-teal-600">Therapy</span></span>
             <p className="text-[10px] text-gray-400 leading-none">Smart Hospital</p>
           </div>
         </Link>

@@ -236,8 +236,15 @@ export default function SmartBookAppointment() {
     for (let i = 0; i < 14; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() + i)
+      
+      // Format date as YYYY-MM-DD in LOCAL time (IST), not UTC
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const localDateString = `${year}-${month}-${day}`
+      
       dates.push({
-        value: date.toISOString().split('T')[0],
+        value: localDateString,
         label: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         isToday: i === 0,
         dayName: date.toLocaleDateString('en-US', { weekday: 'long' })

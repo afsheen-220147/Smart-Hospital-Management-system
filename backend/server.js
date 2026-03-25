@@ -5,12 +5,12 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const appointmentAutoUpdateService = require('./services/appointmentAutoUpdateService');
+const cron = require('node-cron');
+const doctorStatusService = require('./utils/doctorStatusService');
 
 // Load env vars
 dotenv.config();
-
-// Connect to database
-connectDB();
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
@@ -23,14 +23,20 @@ const schedulingRoutes = require('./routes/schedulingRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const consentRoutes = require('./routes/consentRoutes');
+const adminApprovalRoutes = require('./routes/adminApprovalRoutes');
 
 const app = express();
 
 // Security middleware - Helmet with custom config for dev
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false // Disable in development
+  crossOriginOpenerPolicy: false // Allow Google OAuth postMessage
 }));
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
 
 // Rate limiting - higher limit for development, stricter for production
 const limiter = rateLimit({
@@ -61,10 +67,23 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// ==========================================
+// FIX #3: Prevent aggressive caching
+// ==========================================
+app.use((req, res, next) => {
+  // Disable caching for all API responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/patients', patientRoutes);
-app.use('/api/v1/doctors', doctorRoutes);
+app.use('/api/v1/doctor', doctorRoutes); // Standardize to /doctor to match frontend calls
+app.use('/api/v1/doctors', doctorRoutes); // Keep /doctors for backward compatibility
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/visits', visitRoutes);
 app.use('/api/v1/admin-doctors', adminDoctorRoutes);
@@ -72,6 +91,8 @@ app.use('/api/v1/scheduling', schedulingRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/admin-approval', adminApprovalRoutes);
+app.use('/api/v1/consent', consentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -111,8 +132,44 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+// Initialize server and start services
+const initializeServer = async () => {
+  try {
+    // Connect to database first
+    await connectDB();
+    console.log('✅ Connected to MongoDB');
+
+    // Start the appointment auto-update job
+    appointmentAutoUpdateService.startAppointmentAutoUpdateJob();
+
+    // Start the doctor status update cron job (runs every 5 minutes)
+    cron.schedule('*/5 * * * *', async () => {
+      try {
+        await doctorStatusService.updateAllDoctorsStatus();
+      } catch (error) {
+        console.error('❌ Error in doctor status update cron job:', error.message);
+      }
+    });
+    console.log('✅ Doctor status update cron job started (every 5 minutes)');
+
+    // Add MongoDB connection event handlers
+    const mongoose = require('mongoose');
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️  MongoDB disconnected');
+    });
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err.message);
+    });
+  } catch (error) {
+    console.error('❌ Failed to initialize server:', error.message);
+    process.exit(1);
+  }
+};
+
+// Start server
+const server = app.listen(PORT, async () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  await initializeServer();
 });
 
 // Handle port already in use
@@ -156,6 +213,17 @@ server.on('error', (err) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
   // Close server & exit process
   server.close(() => process.exit(1));
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  appointmentAutoUpdateService.stopAppointmentAutoUpdateJob();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

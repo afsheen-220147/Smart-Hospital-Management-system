@@ -77,10 +77,8 @@ export default function Register() {
     } catch { return {} }
   }
 
-  const redirectToDashboard = (role) => {
-    if (role === 'admin')       navigate('/admin')
-    else if (role === 'doctor') navigate('/doctor')
-    else                        navigate('/patient')
+  const redirectToLogin = (email) => {
+    navigate('/login', { state: { registered: true, email } })
   }
 
   // ── Google flow handlers ──
@@ -100,9 +98,9 @@ export default function Register() {
         setMode('google')
         setGoogleStep(2)
       } else if (res.data.token) {
-        // Existing user — auto-login
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+        // Existing user — redirect to login (no auto-login per requirement)
+        showWarning('Account already exists. Please sign in on the login page.')
+        redirectToLogin(payload.email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'Google sign-in failed.'))
@@ -145,10 +143,9 @@ export default function Register() {
       const res = await api.post('/auth/google-register', {
         idToken, role: selectedRole, password, confirmPassword: confirm
       })
-      if (res.data.token) {
-        showSuccess('Registration successful! Welcome to MediCare+')
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+      if (res.data.success) {
+        showSuccess('Registration successful! Please sign in with your credentials.')
+        redirectToLogin(res.data.email || googleUser?.email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'Registration failed. Please try again.'))
@@ -214,10 +211,9 @@ export default function Register() {
     setFieldErrors({})
     try {
       const res = await api.post('/auth/register/verify-otp', { email, otp: otpCode })
-      if (res.data.token) {
-        showSuccess('Registration successful! Welcome to MediCare+')
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+      if (res.data.success) {
+        showSuccess('Registration successful! Please sign in with your credentials.')
+        redirectToLogin(email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'OTP verification failed.'))
@@ -286,11 +282,11 @@ export default function Register() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-            <HeartPulse size={30} className="text-white" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full shadow-xl mb-4 overflow-hidden border-2 border-white">
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2.5" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
-          <p className="text-gray-500 mt-1.5 text-sm">MediCare+ · Smart Hospital Portal</p>
+          <p className="text-gray-500 mt-1.5 text-sm">NeoTherapy · Smart Hospital Portal</p>
         </div>
 
         {/* Step Indicator */}

@@ -99,10 +99,34 @@ const doctorSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // DOCTOR APPROVAL STATUS - Critical for registration flow
+  isApproved: {
+    type: Boolean,
+    default: false,
+    description: 'Admin must approve doctor before they can access dashboard'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    description: 'Which admin approved this doctor'
+  },
+  approvalDate: {
+    type: Date,
+    default: null
+  },
   availabilityStatus: {
     type: String,
-    enum: ['available', 'busy', 'on-leave'],
-    default: 'available'
+    enum: ['on-duty', 'off-duty', 'available', 'busy', 'on-leave'],
+    default: 'on-duty'
+  },
+  lastStatusChange: {
+    type: Date,
+    default: Date.now
+  },
+  statusReason: {
+    type: String,
+    default: ''
   },
   // Smart Scheduling Fields
   workingHours: {
@@ -141,6 +165,27 @@ const doctorSchema = new mongoose.Schema({
   clinicCoordinates: {
     latitude: { type: Number },
     longitude: { type: Number }
+  },
+  // Real-time Queue Management
+  delayFactor: {
+    type: Number,
+    default: 0 // Current delay in minutes (Exponential Moving Average)
+  },
+  currentConsultationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Appointment',
+    default: null // ID of appointment currently being treated
+  },
+  sessionTemplates: {
+    type: [{
+      name: String,
+      maxPatients: Number
+    }],
+    default: [
+      { name: 'morning', maxPatients: 15 },
+      { name: 'afternoon', maxPatients: 15 },
+      { name: 'evening', maxPatients: 10 }
+    ]
   }
 }, {
   timestamps: true

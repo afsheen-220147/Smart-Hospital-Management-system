@@ -89,21 +89,22 @@ const callGroq = async (systemPrompt, userPrompt, temperature = TEMPERATURE) => 
   }
 };
 
-const analyzeSymptoms = async (symptoms, patientHistory = {}) => {
+const analyzeSymptoms = async (symptoms, patientHistory = {}, language = 'English') => {
   try {
-    const cacheKey = `symptoms_${symptoms.sort().join('_')}`;
+    const cacheKey = `symptoms_${symptoms.sort().join('_')}_${language}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
     const systemPrompt = `You are an expert medical AI assistant. Analyze symptoms and provide a preliminary assessment.
-Always respond with valid JSON in this exact format:
+Respond with the values in ${language}.
+Always respond with valid JSON in this exact format (keep keys exactly as below, but translate the values to ${language}):
 {
-  "possibleConditions": [{"name": "condition", "probability": "high/medium/low", "description": "brief explanation"}],
+  "possibleConditions": [{"name": "condition name in ${language}", "probability": "high/medium/low", "description": "brief explanation in ${language}"}],
   "urgencyLevel": "Low/Medium/High/Critical",
-  "recommendedSpecialist": "specialist type",
-  "explanation": "brief medical explanation",
-  "immediateActions": ["action1", "action2"],
-  "warningSignsToWatch": ["sign1", "sign2"]
+  "recommendedSpecialist": "specialist type in ${language}",
+  "explanation": "brief medical explanation in ${language}",
+  "immediateActions": ["action 1 in ${language}", "action 2 in ${language}"],
+  "warningSignsToWatch": ["sign 1 in ${language}", "sign 2 in ${language}"]
 }`;
 
     const userPrompt = `Patient symptoms: ${symptoms.join(', ')}

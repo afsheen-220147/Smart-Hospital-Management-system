@@ -1,6 +1,5 @@
 const express = require('express');
 const {
-  register,
   registerSendOtp,
   registerVerifyOtp,
   login,
@@ -19,7 +18,10 @@ const router = express.Router();
 
 const { protect } = require('../middleware/authMiddleware');
 
-router.post('/register', register);
+// ✅ Deprecated: Old /register route removed
+// Use /register/send-otp → /register/verify-otp for OTP-based registration (required by strict flow)
+// Or use /google-register for Google OAuth registration
+
 router.post('/register/send-otp', registerSendOtp);
 router.post('/register/verify-otp', registerVerifyOtp);
 router.post('/login', login);

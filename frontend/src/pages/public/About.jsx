@@ -10,11 +10,14 @@ export default function About() {
         <div>
             {/* Hero */}
             <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-6">
-                <div className="max-w-4xl mx-auto text-center">
+                <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
+                    <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg border-2 border-white/30">
+                <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+              </div>
                     <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">About Us</span>
-                    <h1 className="text-4xl font-bold my-4">Healing with Care Since 2001</h1>
+                    <h1 className="text-4xl font-bold my-4">Next-Gen Healing, Available Today</h1>
                     <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-                        MediCare+ has been a trusted name in healthcare for over 25 years, delivering world-class medical services with compassion, technology, and expertise.
+                        NeoTherapy has been a trusted name in healthcare for over 25 years, delivering world-class medical services with compassion, technology, and expertise.
                     </p>
                 </div>
             </section>
@@ -113,7 +116,7 @@ export default function About() {
                 <div className="grid md:grid-cols-3 gap-6">
                     {[
                         { icon: Phone, title: 'Call Us', value: '+91 40 4444 5555', sub: 'Emergency: 102', color: 'bg-blue-50 text-blue-600' },
-                        { icon: Mail, title: 'Email', value: 'info@medicare.com', sub: '24hr response guaranteed', color: 'bg-teal-50 text-teal-600' },
+                        { icon: Mail, title: 'Email', value: 'info@neotherapy.com', sub: '24hr response guaranteed', color: 'bg-teal-50 text-teal-600' },
                         { icon: MapPin, title: 'Location', value: 'Hyderabad, Telangana', sub: 'Near Kondapur Ring Road', color: 'bg-violet-50 text-violet-600' },
                     ].map(c => (
                         <div key={c.title} className="flex items-start gap-4 bg-white rounded-2xl p-6 border-2 border-blue-100 shadow-sm">

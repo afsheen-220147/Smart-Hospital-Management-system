@@ -31,6 +31,7 @@ const adminLinks = [
   { to: '/admin/doctors', label: 'Manage Doctors', icon: UserCog },
   { to: '/admin/patients', label: 'Manage Patients', icon: Users },
   { to: '/admin/appointments', label: 'Appointments', icon: CalendarCheck },
+  { to: '/admin/off-duty', label: 'Off-Duty Requests', icon: Clock },
   { to: '/admin/reports', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
@@ -66,13 +67,19 @@ export default function Sidebar({ mobileOpen, onClose }) {
       <div className={`flex items-center px-4 py-4 border-b border-gray-100 dark:border-gray-700 ${isCollapsed ? 'justify-center' : 'justify-between gap-2'}`}>
         {!isCollapsed && (
           <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${role === 'admin' ? 'bg-violet-600' : role === 'doctor' ? 'bg-teal-600' : 'bg-blue-600'}`}>
-              <HeartPulse size={18} className="text-white" />
+            <div className="w-12 h-12 rounded-full overflow-hidden shadow-inner border-2 border-gray-50 dark:border-gray-800">
+              <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">MediCare+</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">NeoTherapy</p>
               <p className="text-[10px] text-gray-400 leading-none truncate">{config.label}</p>
             </div>
+          </div>
+        )}
+
+        {isCollapsed && (
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-inner border border-gray-100 dark:border-gray-800">
+            <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
           </div>
         )}
 

@@ -2,6 +2,7 @@ const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const asyncHandler = require('express-async-handler');
+const adminApprovalController = require('./adminApprovalController');
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/v1/admin/stats
@@ -136,5 +137,95 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
           (statusMap['pending'] || 0) + (statusMap['confirmed'] || 0),
       },
     },
+  });
+});
+
+// @desc    Initiate doctor deletion (requires 3 admin approvals)
+// @route   POST /api/v1/admin/doctor/delete-request
+// @access  Private/Admin
+exports.initiateDoctorDeletion = asyncHandler(async (req, res) => {
+  const { doctorId, adminId, reason } = req.body;
+
+  if (!doctorId || !adminId) {
+    res.status(400);
+    throw new Error('Doctor ID and Admin ID are required');
+  }
+
+  const doctor = await Doctor.findById(doctorId);
+  if (!doctor) {
+    res.status(404);
+    throw new Error('Doctor not found');
+  }
+
+  const adminApprovalService = require('../services/adminApprovalService');
+  const action = await adminApprovalService.createAction(
+    adminId,
+    req.user.name,
+    'doctor_delete',
+    `Delete doctor: ${doctor.user?.name || doctorId}`,
+    { 
+      doctorId,
+      reason: reason || 'No reason provided'
+    },
+    {
+      type: 'doctor',
+      entityId: doctorId,
+      entityName: doctor.user?.name || 'Unknown Doctor'
+    }
+  );
+
+  res.status(201).json({
+    success: true,
+    actionId: action._id,
+    doctorId,
+    status: 'pending',
+    approvals: 1,
+    approvalsNeeded: 3,
+    message: 'Doctor deletion request initiated. Requiring approvals from 2 more admins.'
+  });
+});
+
+// @desc    Initiate patient deletion (requires 3 admin approvals)
+// @route   POST /api/v1/admin/patient/delete-request
+// @access  Private/Admin
+exports.initiatePatientDeletion = asyncHandler(async (req, res) => {
+  const { patientId, adminId, reason } = req.body;
+
+  if (!patientId || !adminId) {
+    res.status(400);
+    throw new Error('Patient ID and Admin ID are required');
+  }
+
+  const patient = await Patient.findById(patientId);
+  if (!patient) {
+    res.status(404);
+    throw new Error('Patient not found');
+  }
+
+  const adminApprovalService = require('../services/adminApprovalService');
+  const action = await adminApprovalService.createAction(
+    adminId,
+    req.user.name,
+    'patient_delete',
+    `Delete patient: ${patient.user?.name || patientId}`,
+    { 
+      patientId,
+      reason: reason || 'No reason provided'
+    },
+    {
+      type: 'patient',
+      entityId: patientId,
+      entityName: patient.user?.name || 'Unknown Patient'
+    }
+  );
+
+  res.status(201).json({
+    success: true,
+    actionId: action._id,
+    patientId,
+    status: 'pending',
+    approvals: 1,
+    approvalsNeeded: 3,
+    message: 'Patient deletion request initiated. Requiring approvals from 2 more admins.'
   });
 });

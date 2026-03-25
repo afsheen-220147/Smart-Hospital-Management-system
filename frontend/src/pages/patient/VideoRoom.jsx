@@ -22,7 +22,7 @@ export default function VideoRoom() {
   const isDemoAppt = String(appointmentId).startsWith('d')
 
   // Deterministic room name — obscure enough to be private
-  const roomName = `medicarepro${appointmentId}`
+  const roomName = `neotherapypro${appointmentId}`
 
   // ── Fetch appointment details ──────────────────────────────────────────────
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function VideoRoom() {
           startWithVideoMuted: false,
           enableWelcomePage: false,
           disableInviteFunctions: true,
-          subject: 'MediCare+ Telemedicine Consultation',
+          subject: 'NeoTherapy Telemedicine Consultation',
         },
         interfaceConfigOverwrite: {
           SHOW_JITSI_WATERMARK: false,
@@ -203,7 +203,7 @@ export default function VideoRoom() {
               <Video size={18} className="text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm leading-tight">MediCare+ Telemedicine</p>
+              <p className="font-bold text-sm leading-tight">NeoTherapy Telemedicine</p>
               <p className="text-blue-300 text-xs leading-tight">Secure Video Consultation</p>
             </div>
           </div>

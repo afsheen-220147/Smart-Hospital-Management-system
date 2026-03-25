@@ -47,31 +47,27 @@ export default function Home() {
       appointments: 350
   })
 
-  // Presentation Scroll Lock Navigation
+  // Presentation Scroll Navigation - Refactored to allow natural scrolling
   const [isAtTop, setIsAtTop] = useState(true);
   const [isScrollUnlocked, setIsScrollUnlocked] = useState(false);
-  const isScrolling = useRef(false); // Guard: prevents multiple triggers during animation
+  const isScrolling = useRef(false);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    // Ensure body overflow is always auto (safeguard against previous locked state)
+    document.body.style.overflow = 'auto';
 
-    // Only update state AFTER any in-flight programmatic scroll finishes
     const handleScroll = () => {
-      if (isScrolling.current) return; // Ignore scroll events during our own animation
+      if (isScrolling.current) return;
       const atTop = window.scrollY < 50;
       setIsAtTop(atTop);
-      if (atTop) {
-        setIsScrollUnlocked(false);
-        document.body.style.overflow = 'hidden';
-      } else {
-        setIsScrollUnlocked(true);
-        // overflow is already 'auto' at this point (set by handleScrollDown after delay)
-      }
+      setIsScrollUnlocked(!atTop);
     };
+    
+    // Initial check
+    handleScroll();
 
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Global cleanup: FORCE UNLOCK scroll when navigating away (Navbar/Chatbot exceptions)
     return () => {
       window.removeEventListener('scroll', handleScroll);
       document.body.style.overflow = 'auto';
@@ -79,17 +75,14 @@ export default function Home() {
   }, []);
 
   const handleScrollDown = () => {
-    if (isScrolling.current) return; // Prevent double-click shake
-    const target = document.getElementById('services'); // "Our Specialties" section
+    if (isScrolling.current) return;
+    const target = document.getElementById('services');
     if (!target) return;
 
     isScrolling.current = true;
-    // Scroll first — overflow is still 'hidden' so no layout reflow
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Unlock overflow ONLY after scroll animation has had time to complete
     setTimeout(() => {
-      document.body.style.overflow = 'auto';
       setIsScrollUnlocked(true);
       setIsAtTop(false);
       isScrolling.current = false;
@@ -100,12 +93,9 @@ export default function Home() {
     if (isScrolling.current) return;
 
     isScrolling.current = true;
-    // Use scrollTo top:0 for a guaranteed pixel-perfect reset (no element offset ambiguity)
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Re-lock overflow ONLY after the scroll animation completes
     setTimeout(() => {
-      document.body.style.overflow = 'hidden';
       setIsScrollUnlocked(false);
       setIsAtTop(true);
       isScrolling.current = false;
@@ -160,7 +150,7 @@ export default function Home() {
             {/* Branding - Minimal Logo Style */}
             <div className="mb-8">
                <div className="inline-block relative">
-                 <h2 className="text-xl font-light tracking-[0.2em] text-[var(--text-primary)] uppercase">MediCare<span className="font-semibold">+</span></h2>
+                 <h2 className="text-xl font-light tracking-[0.2em] text-[var(--text-primary)] uppercase">Neo<span className="font-semibold">Therapy</span></h2>
                  <div className="absolute bottom-[-4px] left-0 w-full h-[1px] bg-gradient-to-r from-[var(--text-secondary)] to-transparent opacity-30" />
                </div>
             </div>
@@ -173,8 +163,11 @@ export default function Home() {
               Smart Healthcare<br />
               <span className="text-[var(--text-secondary)] font-normal">At Your Fingertips</span>
             </h1>
-            <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-8 max-w-md">
-              Book appointments online, access your medical records instantly, and consult with {stats.doctors}+ expert doctors — all from home.
+            <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-4 max-w-md italic font-medium opacity-90">
+              “Care You Can Trust, Technology You Can Rely On.”
+            </p>
+            <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-md opacity-70">
+              Book appointments online, access medical records instantly, and consult with {stats.doctors}+ expert doctors — all from home.
             </p>
             <div className="flex flex-wrap gap-5">
               <Link to="/register" className="flex items-center gap-2 px-7 py-3.5 bg-[var(--text-primary)] text-white font-medium rounded-2xl hover:bg-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
@@ -354,7 +347,7 @@ export default function Home() {
       <section id="features" className="bg-gradient-to-br from-[#1F1F1F] to-[#0A0A0A] py-16">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
           <div className="text-white">
-            <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Why MediCare+</span>
+            <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Why NeoTherapy</span>
             <h2 className="text-3xl font-bold mt-2 mb-8">Modern Healthcare Built for You</h2>
             <div className="space-y-4">
               {features.map(f => (

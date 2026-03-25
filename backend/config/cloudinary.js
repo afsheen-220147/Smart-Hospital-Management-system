@@ -17,11 +17,16 @@ const reportStorage = new CloudinaryStorage({
     const isPDF = file.mimetype === 'application/pdf';
     const isImage = file.mimetype.startsWith('image/');
     
+    // To ensure readable format upon download, append the extension for raw files
+    const ext = file.originalname.split('.').pop();
+    const baseId = `report_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const publicId = isPDF ? `${baseId}.${ext}` : baseId;
+    
     return {
       folder: 'medicare/reports',
       resource_type: isPDF ? 'raw' : 'auto',
       allowed_formats: ['pdf', 'jpg', 'jpeg', 'png'],
-      public_id: `report_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      public_id: publicId,
       transformation: isImage ? [{ quality: 'auto:good' }] : undefined
     };
   }
@@ -30,11 +35,17 @@ const reportStorage = new CloudinaryStorage({
 // Cloudinary storage for prescriptions
 const prescriptionStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'medicare/prescriptions',
-    resource_type: 'auto',
-    allowed_formats: ['pdf', 'jpg', 'jpeg', 'png'],
-    public_id: (req, file) => `prescription_${Date.now()}_${Math.random().toString(36).substring(7)}`
+  params: async (req, file) => {
+    const isPDF = file.mimetype === 'application/pdf';
+    const ext = file.originalname.split('.').pop();
+    const baseId = `prescription_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    return {
+      folder: 'medicare/prescriptions',
+      resource_type: isPDF ? 'raw' : 'auto',
+      allowed_formats: ['pdf', 'jpg', 'jpeg', 'png'],
+      public_id: isPDF ? `${baseId}.${ext}` : baseId
+    };
   }
 });
 

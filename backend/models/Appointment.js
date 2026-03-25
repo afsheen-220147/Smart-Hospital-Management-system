@@ -38,6 +38,10 @@ const appointmentSchema = new mongoose.Schema({
     required: [true, 'Please add a reason for appointment']
   },
   notes: String,
+  reportUrl: {
+    type: String,
+    default: null
+  },
   // Smart Scheduling Fields
   visitType: {
     type: String,
@@ -79,14 +83,52 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['manual', 'waitlist', 'ai-suggestion'],
     default: 'manual'
   },
-  // Telemedicine fields
+  // Consultation State Tracking
+  consultationState: {
+    type: String,
+    enum: ['not_started', 'active', 'paused', 'completed'],
+    default: 'not_started'
+  },
+  pausedAt: Date,
+  resumedAt: Date,
+  estimatedStartTime: Date,
+  estimatedEndTime: Date,
+  queuePosition: {
+    type: Number,
+    default: null
+  },
+  delayInMinutes: {
+    type: Number,
+    default: 0
+  },
   consultationType: {
     type: String,
-    enum: ['in-person', 'online'],
+    enum: ['in-person', 'video', 'online'],
     default: 'in-person'
+  },
+  session: {
+    type: String,
+    enum: ['morning', 'afternoon', 'evening'],
+    default: 'morning'
   },
   meetingRoomId: {
     type: String
+  },
+  // Feature 2 & 5: Cancellation Tracking (who cancelled and why)
+  cancelledBy: {
+    type: String,
+    // Include patient for backward-compatible cancellations initiated by patients
+    enum: ['patient', 'doctor', 'system', 'admin', null],
+    default: null
+  },
+  cancelReason: {
+    type: String,
+    default: null
+  },
+  // Feature 3: Waitlist tracking
+  isWaitlisted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

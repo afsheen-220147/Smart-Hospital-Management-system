@@ -4,8 +4,11 @@ const {
   getDoctor,
   getMyProfile,
   createDoctor,
-  updateDoctor
+  updateDoctor,
+  deleteDoctor
 } = require('../controllers/doctorController');
+
+const { createOffDutyRequest, getDoctorOffDutyRequests } = require('../controllers/offDutyController');
 
 const router = express.Router();
 
@@ -17,7 +20,12 @@ router.post('/', protect, authorize('admin'), createDoctor);
 
 router.get('/me', protect, authorize('doctor'), getMyProfile);
 
+// Off-duty request endpoints
+router.post('/off-duty/request', protect, authorize('doctor'), createOffDutyRequest);
+router.get('/off-duty/my-requests', protect, authorize('doctor'), getDoctorOffDutyRequests);
+
 router.get('/:id', getDoctor);
 router.put('/:id', protect, authorize('doctor', 'admin'), updateDoctor);
+router.delete('/:id', protect, authorize('admin'), deleteDoctor);
 
 module.exports = router;

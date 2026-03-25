@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api' 
 
 const HOSPITALS = [
-  { id: 1, name: 'Smart Hospital Nuzvid', address: 'Nuzvid Bus Stand, Nuzvid, Eluru, Andhra Pradesh, India', lat: 16.7850, lng: 80.8488 },
-  { id: 2, name: 'Smart Hospital Vijayawada', address: 'Vijayawada Bus Stand, Vijayawada, Andhra Pradesh, India', lat: 16.5151, lng: 80.6321 }
+  { id: 1, name: 'NeoTherapy Hospital Nuzvid', address: 'Nuzvid Bus Stand, Nuzvid, Eluru, Andhra Pradesh, India', lat: 16.7850, lng: 80.8488 },
+  { id: 2, name: 'NeoTherapy Hospital Vijayawada', address: 'Vijayawada Bus Stand, Vijayawada, Andhra Pradesh, India', lat: 16.5151, lng: 80.6321 }
 ];
 
 const DEFAULT_OPTIONS = [
@@ -34,7 +34,7 @@ const getBasicResponse = (msg) => {
     if (m.includes('time') || m.includes('hours') || m.includes('timing')) return 'Hospital OPD hours: Mon–Fri 8 AM–8 PM, Sat 8 AM–2 PM. Emergency: 24/7.'
     if (m.includes('record') || m.includes('history')) return 'Your medical records can be accessed in Patient Dashboard → Medical Records. All records are secure and private.'
     if (m.includes('prescription') || m.includes('medicine')) return 'Your prescriptions are available in Visit History after each consultation. You can download them as PDF.'
-    return "I'm MediCare AI. I can help with booking appointments, finding doctors, hospital timings, and medical records. Please select an option above."
+    return "I'm NeoTherapy AI. I can help with booking appointments, finding doctors, hospital timings, and medical records. Please select an option above."
 }
 
 export default function FloatingChatbot() {
@@ -49,7 +49,7 @@ export default function FloatingChatbot() {
         { 
             from: 'bot', 
             type: 'text',
-            text: "Hello! I'm MediCare AI. How can I help you today?", 
+            text: "Hello! I'm NeoTherapy AI. How can I help you today?", 
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             showOptions: true 
         }
@@ -88,7 +88,7 @@ export default function FloatingChatbot() {
           { 
               from: 'bot', 
               type: 'text',
-              text: "Chat cleared. Hello! I'm MediCare AI. How can I help you today?", 
+              text: "Chat cleared. Hello! I'm NeoTherapy AI. How can I help you today?", 
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               showOptions: true 
           }
@@ -210,7 +210,7 @@ export default function FloatingChatbot() {
                             <Bot size={22} className="text-white drop-shadow-md" />
                         </div>
                         <div>
-                            <p className="font-bold text-sm leading-tight tracking-wide drop-shadow-sm">MediCare AI Assistant</p>
+                            <p className="font-bold text-sm leading-tight tracking-wide drop-shadow-sm">NeoTherapy AI Assistant</p>
                             <p className="text-[11px] text-blue-100 flex items-center gap-1.5 font-medium tracking-wide">
                                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)]"></span>
                                 Online
@@ -248,8 +248,8 @@ export default function FloatingChatbot() {
                                     {/* About Hospital Template */}
                                     {m.type === 'aboutHospital' && (
                                         <div className="space-y-3 mt-1">
-                                            <p className="font-bold text-[14px] text-blue-800 border-b border-blue-100 pb-1.5">MediCare+ Smart Hospital</p>
-                                            <p>MediCare+ is a state-of-the-art multi-specialty hospital providing 24/7 world-class healthcare, digital records, and expert consultations.</p>
+                                            <p className="font-bold text-[14px] text-blue-800 border-b border-blue-100 pb-1.5">NeoTherapy Smart Hospital</p>
+                                            <p>NeoTherapy is a state-of-the-art multi-specialty hospital providing 24/7 world-class healthcare, digital records, and expert consultations.</p>
                                             <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-xl shadow-inner mt-2">
                                                 <p className="text-[13px] flex items-center justify-between">
                                                     <span>Owner:</span>
