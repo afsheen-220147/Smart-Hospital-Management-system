@@ -77,10 +77,8 @@ export default function Register() {
     } catch { return {} }
   }
 
-  const redirectToDashboard = (role) => {
-    if (role === 'admin')       navigate('/admin')
-    else if (role === 'doctor') navigate('/doctor')
-    else                        navigate('/patient')
+  const redirectToLogin = (email) => {
+    navigate('/login', { state: { registered: true, email } })
   }
 
   // ── Google flow handlers ──
@@ -100,9 +98,9 @@ export default function Register() {
         setMode('google')
         setGoogleStep(2)
       } else if (res.data.token) {
-        // Existing user — auto-login
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+        // Existing user — redirect to login (no auto-login per requirement)
+        showWarning('Account already exists. Please sign in on the login page.')
+        redirectToLogin(payload.email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'Google sign-in failed.'))
@@ -145,10 +143,9 @@ export default function Register() {
       const res = await api.post('/auth/google-register', {
         idToken, role: selectedRole, password, confirmPassword: confirm
       })
-      if (res.data.token) {
-        showSuccess('Registration successful! Welcome to NeoTherapy')
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+      if (res.data.success) {
+        showSuccess('Registration successful! Please sign in with your credentials.')
+        redirectToLogin(res.data.email || googleUser?.email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'Registration failed. Please try again.'))
@@ -214,10 +211,9 @@ export default function Register() {
     setFieldErrors({})
     try {
       const res = await api.post('/auth/register/verify-otp', { email, otp: otpCode })
-      if (res.data.token) {
-        showSuccess('Registration successful! Welcome to NeoTherapy')
-        loginWithData(res.data)
-        redirectToDashboard(res.data.role)
+      if (res.data.success) {
+        showSuccess('Registration successful! Please sign in with your credentials.')
+        redirectToLogin(email)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'OTP verification failed.'))
