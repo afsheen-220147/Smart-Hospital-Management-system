@@ -2,6 +2,7 @@ const express = require('express');
 const {
   registerSendOtp,
   registerVerifyOtp,
+  completeRegistrationProfile,
   login,
   logout,
   getMe,
@@ -24,6 +25,7 @@ const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register/send-otp', registerSendOtp);
 router.post('/register/verify-otp', registerVerifyOtp);
+router.post('/register/complete-profile', completeRegistrationProfile);
 router.post('/login', login);
 router.post('/google', googleAuth);
 router.post('/google-login', googleAuthLogin);

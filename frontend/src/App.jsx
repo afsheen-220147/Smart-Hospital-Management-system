@@ -14,6 +14,7 @@ import { DashboardSkeleton } from './components/SkeletonLoader'
 const Home = React.lazy(() => import('./pages/public/Home'))
 const Login = React.lazy(() => import('./pages/public/Login'))
 const Register = React.lazy(() => import('./pages/public/Register'))
+const ProfileCompletion = React.lazy(() => import('./pages/public/ProfileCompletion'))
 const ForgotPassword = React.lazy(() => import('./pages/public/ForgotPassword'))
 const Doctors = React.lazy(() => import('./pages/public/Doctors'))
 const About = React.lazy(() => import('./pages/public/About'))
@@ -126,6 +127,11 @@ export default function App() {
             <Route path="register" element={
               <Suspense fallback={<LoadingFallback />}>
                 <Register />
+              </Suspense>
+            } />
+            <Route path="profile-completion" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProfileCompletion />
               </Suspense>
             } />
             <Route path="forgot-password" element={

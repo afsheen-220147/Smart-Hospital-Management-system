@@ -85,7 +85,6 @@ export default function PatientDashboard() {
   }, [user, isDemoUser])
 
   const stats = [
-    { label: 'All Appts', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'All Appointments', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Visits', value: isDemoUser ? 12 : visits.length, icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Lab Reports', value: isDemoUser ? 3 : 0, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
