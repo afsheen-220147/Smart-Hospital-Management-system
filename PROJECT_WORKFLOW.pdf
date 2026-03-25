@@ -1,0 +1,68 @@
+# 🏥 Smart Hospital Management System - Workflow & Architecture 
+
+This document provides a highly detailed, readable map of every major feature, the specific technologies used, external APIs called, and models executing under the hood.
+
+---
+
+## 🛠️ Global Technology Stack
+- **Frontend Framework:** React 18 + Vite
+- **Styling:** TailwindCSS v3/v4 & Lucide-React (Icons)
+- **Routing & State:** React Router DOM & React Context API (`AuthContext`)
+- **Backend Framework:** Node.js + Express.js
+- **Database Architecture:** MongoDB Atlas + Mongoose ODM
+- **Background Tasks:** `node-cron` (Server-side polling)
+
+---
+
+## 🚀 Feature-by-Feature Breakdown
+
+### 1. Authentication & Role-Based Access Control (RBAC)
+**Workflow:**
+Users log in or register. The backend validates the password and dispenses an encrypted token. The frontend `AuthContext` decodes this token to securely lock/unlock specific dashboards (Admin vs. Doctor vs. Patient).
+- **Tech Used:** `jsonwebtoken` (JWT), `bcryptjs` (Hashing), React Context
+- **Endpoints:** `POST /api/auth/login`, `POST /api/auth/register`
+
+### 2. The AI Symptom Checker & Multi-Lingual Engine
+**Workflow:**
+A patient types their symptoms in English, Hindi, or Telugu. The frontend ships this query + the language preference to the backend. The backend reconstructs a prompt enforcing a strict JSON reply format and pings a Large Language Model. 
+Once returned, the frontend dynamically translates the UI and offers a "Find Specialist" button that reads the AI's exact `targetSpecialty`.
+- **Tech Used:** Node.js HTTP Fetch, React State
+- **External API:** **Groq Cloud API**
+- **AI Model:** `llama-3.3-70b-versatile` (Chosen for near-instant inference speed)
+- **Endpoints:** `POST /api/ai/analyze`
+
+### 3. Smart Appointment Booking & Auto-Routing
+**Workflow:**
+When a patient clicks "Find Specialist" from the AI page, React Router internally saves `targetSpecialty: 'Cardiologist'` and navigates to the booking page. The booking page calls the backend for a list of all doctors, and the frontend heavily filters this array to show *only* Cardiologists. If none exist, it gracefully defaults to "General Physicians".
+- **Tech Used:** `useLocation()` (React Router DOM memory state), `Array.prototype.filter()`
+- **Endpoints:** `GET /api/doctors`, `POST /api/appointments`
+
+### 4. Background Automations & Status Management
+**Workflow:**
+The server doesn't wait for humans to clean up old appointments. Running purely in the background on the NodeJS server, a scheduler checks the MongoDB clock every 2 minutes. If it finds historical appointments that the doctor forgot to close, it forcefully transitions their status to "completed" or "cancelled".
+- **Tech Used:** `node-cron` package, Mongoose Schema Updates
+- **Logic Location:** Root `server.js` startup scripts.
+
+### 5. Email & Notification Systems
+**Workflow:**
+When an appointment is confirmed or a waitlist position shifts, the backend queues a stylized email payload containing details of the appointment.
+- **Tech Used:** Nodemailer / SMTP Gateway (Depends on `.env` bindings)
+- **Trigger:** Happens autonomously within `appointmentController.js` and cron jobs.
+
+### 6. Admin Deletion & Security Approval Flow
+**Workflow:**
+Any destructive actions (like firing a doctor or permanently deleting a patient record) are intercepted. Instead of running immediately, they generate an `AdminAction` log. A super-admin must review this queue and manually issue a cryptographic approval before the database actually drops the entity.
+- **Tech Used:** Mongoose Interceptors / Approval Queues
+- **Endpoints:** `adminApprovalController.js` routes.
+
+---
+
+## 📡 API Data Flow Diagram (Linear Example)
+
+1. `(Client) SymptomChecker.jsx` ➡️ *Sends Symptoms (Telugu)* ➡️ `(Server) POST /ai/analyze`
+2. `(Server) aiService.js` ➡️ *Prompts Groq API* ➡️ `(Groq) Llama-3.3`
+3. `(Groq) Llama-3.3` ➡️ *Returns structured JSON* ➡️ `(Server) Route Response`
+4. `(Client) SymptomChecker.jsx` ➡️ *Click button* ➡️ `React Router pushes state`
+5. `(Client) BookAppointment.jsx` ➡️ `GET /doctors` ➡️ *Filters UI magically*
+6. `(Client) BookAppointment.jsx` ➡️ *Selects Slot* ➡️ `POST /appointments`
+7. `(Server) MongoDB` ➡️ *Succeeds* ➡️ `Sends Email via Nodemailer`
