@@ -1,7 +1,36 @@
 [
   {
+    "id": "admin_001",
     "name": "Admin User",
     "email": "admin@medicare.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "id": "admin_002",
+    "name": "Admin Manager",
+    "email": "admin2@medicare.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "id": "admin_003",
+    "name": "Admin Supervisor",
+    "email": "admin3@medicare.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "id": "admin_004",
+    "name": "Admin Director",
+    "email": "admin4@medicare.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "id": "admin_005",
+    "name": "Admin Head",
+    "email": "admin5@medicare.com",
     "password": "password123",
     "role": "admin"
   },

@@ -14,6 +14,13 @@ export const login = async (credentials) => {
   const response = await api.post('/auth/login', credentials);
   if (response.data && response.data.token) {
     localStorage.setItem('sh_user', JSON.stringify(response.data));
+    
+    // If admin, set default adminId for approval system
+    if (response.data.role === 'admin') {
+      // Use a default admin ID - in production this should map from user ID
+      const adminId = localStorage.getItem('adminId') || 'admin_001';
+      localStorage.setItem('adminId', adminId);
+    }
   }
   return response;
 };
@@ -26,6 +33,7 @@ export const logout = async () => {
     // Ignore error, clear local storage anyway
   } finally {
     localStorage.removeItem('sh_user');
+    localStorage.removeItem('adminId');
   }
 };
 
@@ -34,6 +42,12 @@ export const googleLogin = async ({ idToken, role }) => {
   const response = await api.post('/auth/google', { idToken, role });
   if (response.data && response.data.token) {
     localStorage.setItem('sh_user', JSON.stringify(response.data));
+    
+    // If admin, set default adminId for approval system
+    if (response.data.role === 'admin' || role === 'admin') {
+      const adminId = localStorage.getItem('adminId') || 'admin_001';
+      localStorage.setItem('adminId', adminId);
+    }
   }
   return response;
 };

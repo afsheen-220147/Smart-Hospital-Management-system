@@ -4,7 +4,8 @@ const {
   getDoctor,
   getMyProfile,
   createDoctor,
-  updateDoctor
+  updateDoctor,
+  deleteDoctor
 } = require('../controllers/doctorController');
 
 const { createOffDutyRequest, getDoctorOffDutyRequests } = require('../controllers/offDutyController');
@@ -25,5 +26,6 @@ router.get('/off-duty/my-requests', protect, authorize('doctor'), getDoctorOffDu
 
 router.get('/:id', getDoctor);
 router.put('/:id', protect, authorize('doctor', 'admin'), updateDoctor);
+router.delete('/:id', protect, authorize('admin'), deleteDoctor);
 
 module.exports = router;
