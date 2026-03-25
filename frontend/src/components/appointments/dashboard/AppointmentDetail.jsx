@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { 
   ArrowLeft, Clock, Calendar, User, AlertTriangle, 
-  MapPin, StickyNote, Play, Square, XCircle,
+  MapPin, StickyNote, Play, Square, XCircle, Pause,
   FileText, Upload, Eye, CheckCircle, AlertCircle
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import api from '../../../services/api';
+import { showSuccess, showError } from '../../../utils/toast';
 
 const AppointmentDetail = ({ 
   appointment, 
@@ -13,6 +14,8 @@ const AppointmentDetail = ({
   onStart, 
   onEnd, 
   onCancel,
+  onPause,
+  onResume,
   className,
   isToday,
   refreshData
@@ -33,6 +36,7 @@ const AppointmentDetail = ({
 
   const isDelayed = appointment.delay > 0;
   const isOngoing = appointment.status === 'in-progress';
+  const isPaused = appointment.consultationState === 'paused' || appointment.status === 'paused';
   const isCompleted = appointment.status === 'completed';
   const isCancelled = appointment.status === 'cancelled';
   const isConfirmed = appointment.status === 'confirmed';
@@ -299,7 +303,7 @@ const AppointmentDetail = ({
       {/* Do NOT show for Cancelled */}
       {!isCancelled && !isCompleted && (
         <div className="p-4 border-t border-gray-100 bg-white absolute bottom-0 left-0 right-0 md:bg-gray-50/80 md:backdrop-blur-sm z-20">
-          <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto md:max-w-none md:flex md:justify-end">
+          <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto md:max-w-none md:flex md:justify-end md:flex-wrap">
             
             <button
               onClick={() => onCancel(appointment)}
@@ -310,13 +314,33 @@ const AppointmentDetail = ({
             </button>
 
             {isOngoing ? (
-              <button
-                onClick={() => onEnd(appointment)}
-                className="col-span-1 md:w-auto px-6 py-3 md:py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 focus:ring-4 focus:ring-red-100 transition-all shadow-md shadow-red-200 flex items-center justify-center gap-2"
-              >
-                <Square className="w-4 h-4 fill-current" />
-                End Consultation
-              </button>
+              <>
+                {!isPaused && (
+                  <button
+                    onClick={() => onPause(appointment)}
+                    className="col-span-1 md:w-auto px-4 py-3 md:py-2.5 bg-amber-600 text-white rounded-xl font-medium text-sm hover:bg-amber-700 focus:ring-4 focus:ring-amber-100 transition-all shadow-md shadow-amber-200 flex items-center justify-center gap-2"
+                  >
+                    <Pause className="w-4 h-4 fill-current" />
+                    Pause
+                  </button>
+                )}
+                {isPaused && (
+                  <button
+                    onClick={() => onResume(appointment)}
+                    className="col-span-1 md:w-auto px-4 py-3 md:py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all shadow-md shadow-blue-200 flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    Resume
+                  </button>
+                )}
+                <button
+                  onClick={() => onEnd(appointment)}
+                  className="col-span-1 md:w-auto px-6 py-3 md:py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 focus:ring-4 focus:ring-red-100 transition-all shadow-md shadow-red-200 flex items-center justify-center gap-2"
+                >
+                  <Square className="w-4 h-4 fill-current" />
+                  End Consultation
+                </button>
+              </>
             ) : (
               <div 
                 title={!isToday ? "Consultation allowed only on scheduled date" : "Start now"} // Tooltip for disabled state

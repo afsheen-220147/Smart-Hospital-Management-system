@@ -36,6 +36,7 @@ DOCTOR REGISTRATION
 ### **PATIENT EMAIL REGISTRATION** ✅ MATCHES YOUR SPEC
 
 **Flow:**
+
 ```
 1. User clicks "Register with Email"
 2. Enter: name, email, password, confirm password, role (patient)
@@ -58,6 +59,7 @@ DOCTOR REGISTRATION
 ```
 
 **Key Points:**
+
 - ✅ Basic details + password mandatory
 - ✅ Stored in database BEFORE login
 - ✅ OTP verification required
@@ -65,6 +67,7 @@ DOCTOR REGISTRATION
 - ✅ Must login separately
 
 **Code Verification:**
+
 - [registerSendOtp](backend/controllers/authController.js#L51) - Sends OTP
 - [registerVerifyOtp](backend/controllers/authController.js#L104) - Creates user, NO token returned
 - [Frontend Register.jsx](frontend/src/pages/public/Register.jsx#L160) - Sends OTP, verifies
@@ -74,6 +77,7 @@ DOCTOR REGISTRATION
 ### **PATIENT GOOGLE OAUTH REGISTRATION** ✅ MATCHES YOUR SPEC
 
 **Flow:**
+
 ```
 1. User clicks "Sign up with Google"
 2. Google authentication popup
@@ -103,6 +107,7 @@ DOCTOR REGISTRATION
 ```
 
 **Key Points:**
+
 - ✅ Ask for role selection (Patient/Doctor)
 - ✅ Ask for password + confirm password
 - ✅ Password is mandatory (user sets it)
@@ -111,6 +116,7 @@ DOCTOR REGISTRATION
 - ✅ Can login with email+password OR Google again
 
 **Code Verification:**
+
 - [googleRegister](backend/controllers/authController.js#L385) - Creates user, NO token returned
 - [Frontend Register.jsx](frontend/src/pages/public/Register.jsx#L130-L150) - Google flow with password
 
@@ -119,6 +125,7 @@ DOCTOR REGISTRATION
 ### **DOCTOR EMAIL REGISTRATION** ✅ MATCHES YOUR SPEC
 
 **Flow:**
+
 ```
 1. User clicks "Register with Email"
 2. Enter: name, email, password, confirm password
@@ -149,6 +156,7 @@ DOCTOR REGISTRATION
 ```
 
 **Key Points:**
+
 - ✅ Email MUST end with @rguktn.ac.in
 - ✅ Email MUST be in AdminDoctor pre-approved list
 - ✅ Password is mandatory
@@ -159,6 +167,7 @@ DOCTOR REGISTRATION
 - ✅ Must login separately
 
 **Code Verification:**
+
 - [registerSendOtp](backend/controllers/authController.js#L78-L86) - Validates @rguktn.ac.in and AdminDoctor
 - [registerVerifyOtp](backend/controllers/authController.js#L135-L148) - Auto-approves if in AdminDoctor
 - [Frontend Register.jsx](frontend/src/pages/public/Register.jsx#L400-L410) - Doctor role selection with restriction
@@ -168,6 +177,7 @@ DOCTOR REGISTRATION
 ### **DOCTOR GOOGLE OAUTH REGISTRATION** ✅ MATCHES YOUR SPEC
 
 **Flow:**
+
 ```
 1. User clicks "Sign up with Google" with @rguktn.ac.in email
 2. Google authentication successful
@@ -210,6 +220,7 @@ DOCTOR REGISTRATION
 ```
 
 **Key Points:**
+
 - ✅ Email MUST end with @rguktn.ac.in (enforced in role selection)
 - ✅ Email MUST be in AdminDoctor pre-approved list
 - ✅ Ask for password + confirm password
@@ -220,6 +231,7 @@ DOCTOR REGISTRATION
 - ✅ Can login with email+password OR Google again
 
 **Code Verification:**
+
 - [googleRegister](backend/controllers/authController.js#L414-L427) - Validates @rguktn.ac.in and AdminDoctor
 - [Frontend Register.jsx](frontend/src/pages/public/Register.jsx#L350-L365) - Doctor role selection blocked for non-@rguktn emails
 
@@ -228,6 +240,7 @@ DOCTOR REGISTRATION
 ### **LOGIN** ✅ MATCHES YOUR SPEC
 
 **Patient/Doctor Login:**
+
 ```
 1. User enters email + password
 2. Backend finds user by email
@@ -245,6 +258,7 @@ DOCTOR REGISTRATION
 ```
 
 **Google OAuth Login:**
+
 ```
 1. User clicks "Sign in with Google"
 2. Google authentication successful
@@ -259,6 +273,7 @@ DOCTOR REGISTRATION
 ```
 
 **Key Points:**
+
 - ✅ Only registered users can login
 - ✅ Email + password required (or Google OAuth)
 - ✅ Doctor approval check enforced
@@ -266,6 +281,7 @@ DOCTOR REGISTRATION
 - ✅ Token NOT generated on registration
 
 **Code Verification:**
+
 - [login](backend/controllers/authController.js#L214) - Validates credentials + doctor approval
 - [googleAuthLogin](backend/controllers/authController.js#L297) - Validates Google token + doctor approval
 - [Frontend Login.jsx](frontend/src/pages/public/Login.jsx#L40-L55) - Tries login, shows errors
@@ -317,29 +333,30 @@ POST   /api/v1/auth/register
 
 ## 🔐 Security Measures
 
-| Requirement | Implementation | Status |
-|---|---|---|
-| Password mandatory | All registration paths require password | ✅ |
-| Password strong | validatePassword() checks 5 rules (8+ chars, uppercase, lowercase, number, special) | ✅ |
-| Password hashed | bcryptjs hashing with salt rounds configured | ✅ |
-| OTP required (email) | registerSendOtp sends OTP, registerVerifyOtp verifies before user creation | ✅ |
-| OTP expires | 10-minute expiry enforced | ✅ |
-| OTP rate limited | 60-second cooldown between OTP requests | ✅ |
-| No auto-login | Registration endpoints return NO JWT token | ✅ |
-| Separate phases | Registration → Redirect to Login → Login generates token | ✅ |
-| Doctor @rguktn only | Email validation + domain check in registerSendOtp and googleRegister | ✅ |
-| Doctor pre-approved | AdminDoctor list check in registerSendOtp and googleRegister | ✅ |
-| Doctor auto-approval | Auto-approved on registration if in AdminDoctor list | ✅ |
-| Doctor approval check | Login endpoints check doctor.isApproved status | ✅ |
-| Google email validation | @rguktn.ac.in rejection for doctor role in frontend and backend | ✅ |
-| Token on login only | generateToken() called only in login endpoints | ✅ |
-| User exists check | Validates before registration, before login | ✅ |
+| Requirement             | Implementation                                                                      | Status |
+| ----------------------- | ----------------------------------------------------------------------------------- | ------ |
+| Password mandatory      | All registration paths require password                                             | ✅     |
+| Password strong         | validatePassword() checks 5 rules (8+ chars, uppercase, lowercase, number, special) | ✅     |
+| Password hashed         | bcryptjs hashing with salt rounds configured                                        | ✅     |
+| OTP required (email)    | registerSendOtp sends OTP, registerVerifyOtp verifies before user creation          | ✅     |
+| OTP expires             | 10-minute expiry enforced                                                           | ✅     |
+| OTP rate limited        | 60-second cooldown between OTP requests                                             | ✅     |
+| No auto-login           | Registration endpoints return NO JWT token                                          | ✅     |
+| Separate phases         | Registration → Redirect to Login → Login generates token                            | ✅     |
+| Doctor @rguktn only     | Email validation + domain check in registerSendOtp and googleRegister               | ✅     |
+| Doctor pre-approved     | AdminDoctor list check in registerSendOtp and googleRegister                        | ✅     |
+| Doctor auto-approval    | Auto-approved on registration if in AdminDoctor list                                | ✅     |
+| Doctor approval check   | Login endpoints check doctor.isApproved status                                      | ✅     |
+| Google email validation | @rguktn.ac.in rejection for doctor role in frontend and backend                     | ✅     |
+| Token on login only     | generateToken() called only in login endpoints                                      | ✅     |
+| User exists check       | Validates before registration, before login                                         | ✅     |
 
 ---
 
 ## 🧪 Testing the Flow
 
 ### **Manual Test: Patient Email Registration**
+
 ```bash
 # 1. Send OTP
 curl -X POST http://localhost:5050/api/v1/auth/register/send-otp \
@@ -377,6 +394,7 @@ curl -X POST http://localhost:5050/api/v1/auth/login \
 ```
 
 ### **Manual Test: Doctor Email Registration**
+
 ```bash
 # 1. Send OTP (with @rguktn.ac.in email)
 curl -X POST http://localhost:5050/api/v1/auth/register/send-otp \
@@ -423,20 +441,20 @@ curl -X POST http://localhost:5050/api/v1/auth/login \
 
 Your strict authentication flow is **FULLY IMPLEMENTED**:
 
-| Feature | Status |
-|---------|--------|
-| Patient email registration with OTP | ✅ |
-| Patient Google OAuth with password | ✅ |
-| Doctor @rguktn.ac.in email only | ✅ |
-| Doctor admin pre-approval required | ✅ |
-| Password mandatory for all | ✅ |
-| Password strength validated | ✅ |
-| Database storage before login | ✅ |
-| Registration-first (no auto-login) | ✅ |
-| Separate registration & login phases | ✅ |
-| Doctor approval check on login | ✅ |
-| Token generated ONLY on login | ✅ |
-| OTP verification for email registration | ✅ |
-| Deprecated routes removed | ✅ |
+| Feature                                 | Status |
+| --------------------------------------- | ------ |
+| Patient email registration with OTP     | ✅     |
+| Patient Google OAuth with password      | ✅     |
+| Doctor @rguktn.ac.in email only         | ✅     |
+| Doctor admin pre-approval required      | ✅     |
+| Password mandatory for all              | ✅     |
+| Password strength validated             | ✅     |
+| Database storage before login           | ✅     |
+| Registration-first (no auto-login)      | ✅     |
+| Separate registration & login phases    | ✅     |
+| Doctor approval check on login          | ✅     |
+| Token generated ONLY on login           | ✅     |
+| OTP verification for email registration | ✅     |
+| Deprecated routes removed               | ✅     |
 
 **NO DEVIATIONS** from your intended behavior. ✅
