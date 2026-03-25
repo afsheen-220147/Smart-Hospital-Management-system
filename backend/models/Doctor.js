@@ -101,8 +101,16 @@ const doctorSchema = new mongoose.Schema({
   },
   availabilityStatus: {
     type: String,
-    enum: ['available', 'busy', 'on-leave'],
-    default: 'available'
+    enum: ['on-duty', 'off-duty', 'available', 'busy', 'on-leave'],
+    default: 'on-duty'
+  },
+  lastStatusChange: {
+    type: Date,
+    default: Date.now
+  },
+  statusReason: {
+    type: String,
+    default: ''
   },
   // Smart Scheduling Fields
   workingHours: {

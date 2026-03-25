@@ -1,428 +1,446 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Users, Calendar, AlertCircle, Clock, Search, 
-  Filter, Video, MapPin, ChevronRight, Activity,
-  CheckCircle2, PlayCircle, MoreVertical
-} from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import api from '../../services/api';
+import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Calendar, Clock, AlertCircle, Loader, Users, CheckCircle, XCircle } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+import api from '../../services/api'
+import { showError, showSuccess } from '../../utils/toast'
+import {
+  getCurrentSession,
+  isToday,
+  formatTimeIST,
+  formatDateIST,
+  parseTimeToMinutes,
+} from '../../utils/timeHelper'
 
 export default function DoctorDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  
-  const [profile, setProfile] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStr, setFilterStr] = useState('Today'); // Today, Upcoming, Completed
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
 
-  // NEW FEATURE: Local on-duty state (can be synced with localStorage)
-  const [isOnDuty, setIsOnDuty] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('doctorOnDuty')
-      return saved ? JSON.parse(saved) : true
-    }
-    return true
-  })
+  // STATE
+  const [doctorProfile, setDoctorProfile] = useState(null)
+  const [appointments, setAppointments] = useState([])
+  const [leaveRequests, setLeaveRequests] = useState([])
+  const [stats, setStats] = useState({ totalToday: 0, upcomingCount: 0, completedCount: 0 })
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterSession, setFilterSession] = useState('all')
+  const [currentSession, setCurrentSession] = useState(null)
+  const [error, setError] = useState(null)
 
-  // NEW FEATURE: Sync on-duty state with localStorage
+  // ========================================
+  // EFFECT: Wait for auth to load
+  // ========================================
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('doctorOnDuty', JSON.stringify(isOnDuty))
+    if (authLoading) {
+      console.log('⏳ Waiting for authentication...')
+      return
     }
-  }, [isOnDuty])
 
-  // Fetch Data
+    if (!user) {
+      console.warn('❌ User not authenticated, redirecting to login')
+      navigate('/login')
+      return
+    }
+
+    console.log('✅ Auth ready, user:', user.email)
+  }, [authLoading, user, navigate])
+
+  // ========================================
+  // EFFECT: Fetch doctor data (only after auth is ready)
+  // ========================================
   useEffect(() => {
-    const fetchDoctorData = async () => {
+    // Don't fetch if auth is still loading
+    if (authLoading) {
+      console.log('⏳ Skipping fetch: Auth still loading')
+      return
+    }
+
+    // Don't fetch if user not authenticated
+    if (!user?.email) {
+      console.warn('⏳ Skipping fetch: User not authenticated')
+      setLoading(false)
+      return
+    }
+
+    const fetchData = async () => {
       try {
-        setLoading(true);
-        let realAppts = [];
-        let realProfile = null;
+        setLoading(true)
+        setError(null)
 
-        if (user?._id || user?.id) {
-          const profRes = await api.get('/doctors/me');
-          realProfile = profRes.data.data;
-          
-          const apptRes = await api.get(`/appointments/doctor/${realProfile._id}`);
-          realAppts = apptRes.data.data || [];
+        console.log('🔄 Fetching doctor dashboard data...')
+        console.log('👤 User:', user.email)
+
+        // Fetch doctor profile
+        console.log('📌 Step 1: Fetching doctor profile...')
+        let doctor = null
+        try {
+          const profRes = await api.get('/doctors/me')
+          doctor = profRes.data.data
+          console.log('✅ Doctor profile loaded:', doctor)
+          setDoctorProfile(doctor)
+        } catch (err) {
+          console.error('❌ Error fetching doctor profile:', err.response?.data || err.message)
+          // Create a fallback doctor profile
+          doctor = {
+            user: { name: user?.name || 'Doctor' },
+            specialization: user?.specialization || 'Medical Professional',
+            experience: 0
+          }
+          setDoctorProfile(doctor)
         }
 
-        // Handle Demo Doctor fallback
-        const isDemoDoctor = user?.email === 'sneha@medicare.com' || user?.email === 'suresh@medicare.com';
-        if (isDemoDoctor) {
-          setProfile(realProfile || { specialization: 'General Physician', experience: 12, rating: 4.8 });
-          const demoAppts = [
-            { _id: 'd1', timeSlot: '10:30 AM', endTime: '11:00 AM', patient: { name: 'Venkat R.' }, visitType: 'First Consultation', status: 'pending', isOverbooking: false, consultationType: 'in-person' },
-            { _id: 'd2', timeSlot: '11:00 AM', endTime: '11:15 AM', patient: { name: 'Rahul K.' }, visitType: 'Follow-up', status: 'in-progress', isOverbooking: false, consultationType: 'online' },
-            { _id: 'd3', timeSlot: '11:30 AM', endTime: '12:00 PM', patient: { name: 'Anitha S.' }, visitType: 'Emergency', status: 'confirmed', isOverbooking: true, consultationType: 'in-person' },
-            { _id: 'd4', timeSlot: '09:00 AM', endTime: '09:30 AM', patient: { name: 'Mohammed A.' }, visitType: 'Routine Checkup', status: 'completed', isOverbooking: false, consultationType: 'in-person' },
-          ];
-          setAppointments([...demoAppts, ...realAppts]);
-        } else {
-          setProfile(realProfile);
-          setAppointments(realAppts);
+        // Fetch appointments
+        console.log('📌 Step 2: Fetching appointments...')
+        let appts = []
+        try {
+          const apptRes = await api.get(`/appointments/doctor/${doctor?._id || ''}`)
+          appts = apptRes.data.data || []
+          console.log('✅ Appointments loaded:', appts.length, 'appointments')
+          setAppointments(appts)
+        } catch (err) {
+          console.error('❌ Error fetching appointments:', err.response?.data || err.message)
+          appts = []
+          setAppointments([])
         }
+
+        // Fetch leave requests
+        console.log('📌 Step 3: Fetching leave requests...')
+        try {
+          const leaveRes = await api.get('/doctor/off-duty/my-requests')
+          const leaves = leaveRes.data.data || []
+          console.log('✅ Leave requests loaded:', leaves.length, 'requests')
+          setLeaveRequests(leaves)
+        } catch (err) {
+          console.warn('⚠️  Leave requests not available:', err.message)
+          setLeaveRequests([])
+        }
+
+        // Calculate stats
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const todayAppts = appts.filter(apt => {
+          const aptDate = new Date(apt.date || apt.appointmentDate)
+          aptDate.setHours(0, 0, 0, 0)
+          return aptDate.getTime() === today.getTime()
+        })
+
+        const upcomingAppts = appts.filter(apt => {
+          const status = (apt.status || '').toLowerCase()
+          return status !== 'completed' && status !== 'cancelled'
+        })
+
+        const completedAppts = appts.filter(apt => (apt.status || '').toLowerCase() === 'completed')
+
+        setStats({
+          totalToday: todayAppts.length,
+          upcomingCount: upcomingAppts.length,
+          completedCount: completedAppts.length
+        })
+
+        // Set current session
+        setCurrentSession(getCurrentSession())
+        console.log('✅ Dashboard data loaded successfully')
       } catch (err) {
-        console.error("Doctor dashboard error:", err);
+        console.error('❌ Critical error fetching data:', err)
+        setError(err.message || 'Failed to load dashboard data')
       } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) fetchDoctorData();
-  }, [user]);
-
-  const handleStatusUpdate = async (appt, newStatus) => {
-    const id = appt._id;
-    if (!String(id).startsWith('d')) {
-      try {
-        await api.put(`/appointments/${id}`, { status: newStatus });
-      } catch (err) {
-        console.error("Error updating status:", err);
+        setLoading(false)
       }
     }
 
-    setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: newStatus } : a));
+    fetchData()
+  }, [authLoading, user?.email])
 
-    if (newStatus === 'in-progress') {
-      navigate('/doctor/diagnosis', { 
-        state: { selectedAppointmentId: id, patientName: appt.patient?.name } 
-      });
+  // Filter appointments
+  const filteredAppointments = useMemo(() => {
+    let result = appointments
+
+    // Filter by search term
+    if (searchTerm) {
+      result = result.filter(apt =>
+        apt.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        apt.visitType?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     }
-  };
 
-  // Helper for sorting
-  const parseTime = (timeStr) => {
-    if (!timeStr) return 0;
-    const timeOnly = timeStr.replace(/ AM| PM| am| pm/g, '').trim();
-    let [hours, minutes] = timeOnly.split(':').map(Number);
-    if (timeStr.toLowerCase().includes('pm') && hours !== 12) hours += 12;
-    else if (timeStr.toLowerCase().includes('am') && hours === 12) hours = 0;
-    return hours * 60 + (minutes || 0);
-  };
+    // Filter by session
+    if (filterSession !== 'all') {
+      result = result.filter(apt => {
+        const time = apt.timeSlot || ''
+        if (filterSession === 'morning') {
+          return parseInt(time) < 12 || time.toLowerCase().includes('am')
+        } else if (filterSession === 'afternoon') {
+          return parseInt(time) >= 12 || time.toLowerCase().includes('pm')
+        }
+        return true
+      })
+    }
 
-  // NEW FEATURE: Track if search is active
-  const isSearching = searchTerm.trim().length > 0
+    // Filter today's appointments
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  // Smart Sorting & Filtering
-  const filteredAndSortedAppointments = useMemo(() => {
-    // 1. Filter
-    let filtered = appointments.filter(a => {
-      // Search
-      if (searchTerm && !a.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      
-      // Category Filter (Mock implementation based on basic rules)
-      if (filterStr === 'Today') {
-        const isToday = !a.date || new Date(a.date).toDateString() === new Date().toDateString();
-        return isToday && a.status !== 'completed';
-      }
-      if (filterStr === 'Upcoming') return ['pending', 'confirmed'].includes(a.status);
-      if (filterStr === 'Completed') return a.status === 'completed';
-      return true;
-    });
+    result = result.filter(apt => {
+      const aptDate = new Date(apt.date || apt.appointmentDate)
+      aptDate.setHours(0, 0, 0, 0)
+      return aptDate.getTime() === today.getTime()
+    })
 
-    // 2. Advanced Smart Sorting
-    return filtered.sort((a, b) => {
-      // Emergency priority highest
-      const aIsEmergency = a.visitType === 'Emergency';
-      const bIsEmergency = b.visitType === 'Emergency';
-      if (aIsEmergency && !bIsEmergency) return -1;
-      if (!aIsEmergency && bIsEmergency) return 1;
+    // Sort by time
+    return result.sort((a, b) => {
+      const timeA = parseTimeToMinutes(a.timeSlot || '00:00')
+      const timeB = parseTimeToMinutes(b.timeSlot || '00:00')
+      return timeA - timeB
+    })
+  }, [appointments, searchTerm, filterSession])
 
-      // In-progress priority
-      if (a.status === 'in-progress' && b.status !== 'in-progress') return -1;
-      if (a.status !== 'in-progress' && b.status === 'in-progress') return 1;
+  // Get status badge color
+  const getStatusColor = (status) => {
+    const s = (status || '').toLowerCase()
+    if (s === 'confirmed' || s === 'approved') return 'bg-green-100 text-green-700'
+    if (s === 'pending') return 'bg-blue-100 text-blue-700'
+    if (s === 'rejected' || s === 'cancelled') return 'bg-red-100 text-red-700'
+    if (s === 'completed') return 'bg-gray-100 text-gray-700'
+    if (s === 'in-progress') return 'bg-purple-100 text-purple-700'
+    return 'bg-gray-100 text-gray-700'
+  }
 
-      // Time-based sorting (nearest first)
-      return parseTime(a.timeSlot) - parseTime(b.timeSlot);
-    });
-  }, [appointments, searchTerm, filterStr]);
+  const getLeaveStatusColor = (status) => {
+    const s = (status || '').toLowerCase()
+    if (s === 'approved') return 'bg-green-100 text-green-700'
+    if (s === 'pending') return 'bg-blue-100 text-blue-700'
+    if (s === 'rejected') return 'bg-red-100 text-red-700'
+    return 'bg-gray-100 text-gray-700'
+  }
 
-  // Derived Summary Stats
-  const stats = useMemo(() => {
-    const todayAppts = appointments.filter(a => !a.date || new Date(a.date).toDateString() === new Date().toDateString());
-    return {
-      totalToday: todayAppts.length,
-      upcoming: todayAppts.filter(a => ['pending', 'confirmed', 'in-progress'].includes(a.status)).length,
-      emergencies: todayAppts.filter(a => a.visitType === 'Emergency').length,
-      overbooked: todayAppts.filter(a => a.isOverbooking).length
-    };
-  }, [appointments]);
-
+  // LOADING STATE
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader size={40} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading dashboard...</p>
+          <p className="text-sm text-gray-500 mt-2">Please wait while we fetch your data</p>
+        </div>
       </div>
-    );
+    )
+  }
+
+  // ERROR STATE
+  if (error && !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md">
+          <AlertCircle size={40} className="text-red-600 mx-auto mb-4" />
+          <p className="text-gray-900 font-bold">Authentication Error</p>
+          <p className="text-gray-600 text-sm mt-2">{error}</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-10">
-      
-      {/* 1. Summary Cards Section */}
-      <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-4 tracking-tight">Daily Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Card 1 */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Total Patients Today</p>
-              <h3 className="text-3xl font-extrabold text-gray-900">{stats.totalToday}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
-              <Users className="text-green-600" size={24} />
-            </div>
+    <div className="space-y-6 pb-6">
+      {/* DOCTOR INFO CARD */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Welcome, Dr. {doctorProfile?.user?.name || user?.name || 'Doctor'}</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {doctorProfile?.specialization || 'Medical Professional'} • {doctorProfile?.experience || 0} years experience
+            </p>
           </div>
-          
-          {/* Card 2 */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Upcoming</p>
-              <h3 className="text-3xl font-extrabold text-gray-900">{stats.upcoming}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-              <Calendar className="text-blue-600" size={24} />
-            </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-blue-600">{currentSession} Session</p>
+            <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
           </div>
+        </div>
+      </div>
 
-          {/* Card 3 */}
-          <div className="bg-white rounded-2xl p-5 border border-red-100 shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-2 h-full bg-red-500"></div>
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Emergency Cases</p>
-              <h3 className="text-3xl font-extrabold text-gray-900">{stats.emergencies}</h3>
+              <p className="text-sm font-medium text-gray-500">Today's Patients</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalToday}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
-              <Activity className="text-red-600" size={24} />
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Users size={24} className="text-blue-600" />
             </div>
           </div>
+        </div>
 
-          {/* Card 4 */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Overbooked Slots</p>
-              <h3 className="text-3xl font-extrabold text-gray-900">{stats.overbooked}</h3>
+              <p className="text-sm font-medium text-gray-500">Upcoming</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.upcomingCount}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center">
-              <AlertCircle className="text-yellow-600" size={24} />
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Calendar size={24} className="text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Completed</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completedCount}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <CheckCircle size={24} className="text-green-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. Main Scheduler Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-        
-        {/* NEW FEATURE: Banner when Off Duty */}
-        {!isOnDuty && (
-          <div className="bg-red-50 border-b border-red-200 p-4 flex items-center gap-3">
-            <Activity className="text-red-600" size={20} />
-            <div>
-              <p className="text-sm font-bold text-red-700">You are Off Duty</p>
-              <p className="text-xs text-red-600">Scheduling is paused. Appointments are shown as Waiting.</p>
-            </div>
+      {/* TODAY'S APPOINTMENTS SECTION */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+          <h3 className="text-lg font-bold text-gray-900">Today's Appointments</h3>
+          <span className="text-sm text-gray-500">{filteredAppointments.length} scheduled</span>
+        </div>
+
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-4 bg-white flex-wrap">
+          <input
+            type="text"
+            placeholder="Search patient name or type..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 min-w-64 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+          />
+          <select
+            value={filterSession}
+            onChange={(e) => setFilterSession(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm bg-white"
+          >
+            <option value="all">All Sessions</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+          </select>
+        </div>
+
+        {filteredAppointments.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAppointments.slice(0, 10).map((apt) => (
+                  <tr key={apt._id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {apt.timeSlot}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {apt.patient?.name || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {apt.visitType || 'Consultation'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
+                        {apt.status || 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => navigate(`/doctor/appointments`)}
+                        className="text-blue-600 hover:text-blue-700 font-semibold text-sm"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-6 py-12 text-center">
+            <AlertCircle size={32} className="text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">No appointments scheduled for today</p>
           </div>
         )}
-        
-        {/* Table Header Controls */}
-        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Clock className="text-green-600" size={20} /> Smart Schedule
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">AI-prioritized patient queue.</p>
-            </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Search */}
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search patient..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all bg-white"
-              />
-              {/* NEW FEATURE: Show search result count */}
-              {isSearching && (
-                <div className="absolute bottom-0 left-3 translate-y-6 text-xs text-gray-500 font-medium">
-                  Found {filteredAndSortedAppointments.length} result{filteredAndSortedAppointments.length !== 1 ? 's' : ''}
-                </div>
-              )}
-            </div>
-            
-            {/* Filter Toggle */}
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              {['Today', 'Upcoming', 'Completed'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilterStr(f)}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${filterStr === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Table Content */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-50/80 text-gray-500 font-medium border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4">Time</th>
-                <th className="px-6 py-4">Patient</th>
-                <th className="px-6 py-4">Consultation</th>
-                <th className="px-6 py-4">Mode</th>
-                <th className="px-6 py-4">Priority / Smart Alert</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredAndSortedAppointments.length > 0 ? (
-                filteredAndSortedAppointments.map((appt) => {
-                  const isOngoing = appt.status === 'in-progress';
-                  const isEmergency = appt.visitType === 'Emergency';
-                  
-                  return (
-                    <tr 
-                      key={appt._id} 
-                      className={`group hover:bg-green-50/30 transition-all duration-300 cursor-pointer hover:shadow-sm ${isOngoing ? 'bg-green-50/50' : ''} ${
-                        // NEW FEATURE: Highlight search matches
-                        isSearching && appt.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) 
-                          ? 'bg-blue-50/40 border-l-4 border-blue-500' 
-                          : ''
-                      }`}
-                    >
-                      {/* 1. Time Slot */}
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className={`font-bold ${isOngoing ? 'text-green-700' : 'text-gray-900'}`}>{appt.timeSlot}</span>
-                          {appt.endTime && <span className="text-xs text-gray-400 font-medium">to {appt.endTime}</span>}
-                        </div>
-                      </td>
-
-                      {/* 2. Patient Name */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isEmergency ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                            {appt.patient?.name?.charAt(0) || 'P'}
-                          </div>
-                          <span className="font-semibold text-gray-800">{appt.patient?.name || 'Unknown Patient'}</span>
-                        </div>
-                      </td>
-
-                      {/* 3. Consultation Type */}
-                      <td className="px-6 py-4">
-                        <span className="text-gray-600 font-medium flex items-center gap-1.5">
-                          {appt.visitType || 'First Consultation'}
-                        </span>
-                      </td>
-
-                      {/* 4. Mode */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-gray-500">
-                          {appt.consultationType === 'online' ? (
-                            <><Video size={14} className="text-blue-500"/> Online</>
-                          ) : (
-                            <><MapPin size={14} className="text-gray-400"/> Clinic</>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 5. Smart Priority / Alerts */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {isEmergency && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
-                              EMERGENCY
-                            </span>
-                          )}
-                          {!isEmergency && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-green-100 text-green-700 border border-green-200">
-                              NORMAL
-                            </span>
-                          )}
-                          {appt.isOverbooking && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 gap-1">
-                              <AlertCircle size={10} /> OVERBOOKED
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 6. Status */}
-                      <td className="px-6 py-4">
-                        {isOngoing && (
-                          <span className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-lg border border-green-100">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Ongoing
-                          </span>
-                        )}
-                        {/* NEW FEATURE: Show Waiting status only when OFF DUTY */}
-                        {!isOnDuty && (appt.status === 'pending' || appt.status === 'confirmed' || appt.status === 'Waiting') && (
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-                            <Clock size={12} /> Waiting
-                          </span>
-                        )}
-                        {appt.status === 'completed' && (
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-                            <CheckCircle2 size={12} className="text-green-500" /> Done
-                          </span>
-                        )}
-                      </td>
-
-                      {/* 7. Action Button */}
-                      <td className="px-6 py-4 text-right">
-                        {appt.status !== 'completed' && !isOngoing && (
-                          <button 
-                            onClick={() => handleStatusUpdate(appt, 'in-progress')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:border-green-500 hover:text-green-600 hover:scale-105 hover:shadow-md shadow-sm transition-all duration-300 cursor-pointer"
-                          >
-                            <PlayCircle size={14} /> Start
-                          </button>
-                        )}
-                        {isOngoing && (
-                          <button 
-                            onClick={() => handleStatusUpdate(appt, 'completed')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 hover:scale-105 hover:shadow-md shadow-sm transition-all duration-300 cursor-pointer"
-                          >
-                            <CheckCircle2 size={14} /> Complete
-                          </button>
-                        )}
-                        {appt.status === 'completed' && (
-                          <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:scale-105 transition-all cursor-pointer">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Calendar className="w-10 h-10 text-gray-300" />
-                      <p className="text-base font-medium text-gray-900 mt-2">No appointments found</p>
-                      <p className="text-sm">You have no scheduled visits matching this criteria.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
+      {/* LEAVE REQUESTS SECTION */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+          <h3 className="text-lg font-bold text-gray-900">Leave Requests</h3>
+          <button
+            onClick={() => navigate('/doctor/off-duty')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-colors"
+          >
+            Request Leave
+          </button>
+        </div>
+
+        {leaveRequests.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Session</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Reason</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Requested</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaveRequests.slice(0, 10).map((leave) => (
+                  <tr key={leave._id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatDateIST(leave.date)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">
+                      {leave.session}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
+                      {leave.reason || 'No reason provided'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${getLeaveStatusColor(leave.status)}`}>
+                        {leave.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDateIST(leave.requestedAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-6 py-12 text-center">
+            <Calendar size={32} className="text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">No leave requests submitted</p>
+            <button
+              onClick={() => navigate('/doctor/off-duty')}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-colors"
+            >
+              Submit First Leave Request
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }

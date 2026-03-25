@@ -25,13 +25,6 @@ const sendAppointmentConfirmation = async (appointmentId) => {
       throw new Error('Appointment not found');
     }
 
-    // Build estimatedTime string from Date if present
-    let estimatedTimeStr = null;
-    if (appointment.estimatedStartTime) {
-      const est = new Date(appointment.estimatedStartTime);
-      estimatedTimeStr = `${est.getHours()}:${String(est.getMinutes()).padStart(2, '0')}`;
-    }
-
     const template = emailTemplates.appointmentConfirmation({
       patientName: appointment.patient.name,
       doctorName: appointment.doctor.user.name,
@@ -44,7 +37,7 @@ const sendAppointmentConfirmation = async (appointmentId) => {
       mode: appointment.mode || appointment.consultationType || 'in-person',
       session: appointment.session,
       queuePosition: appointment.queuePosition,
-      estimatedTime: estimatedTimeStr
+      estimatedTime: null // Don't use estimatedStartTime - just use timeSlot which is already accurate
     });
 
     await sendEmail({

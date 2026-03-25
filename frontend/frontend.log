@@ -1,0 +1,14 @@
+
+> smart-hospital-frontend@0.1.0 dev
+> kill-port 3000 2>/dev/null || true && vite --port 3000
+
+Process on port 3000 killed
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+  VITE v5.4.21  ready in 820 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+9:32:46 AM [vite] hmr update /src/pages/doctor/Dashboard.jsx, /src/index.css
+Killed

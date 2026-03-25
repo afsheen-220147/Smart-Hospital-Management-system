@@ -67,10 +67,10 @@ export default function PatientLayout() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-950">
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
         {/* Topbar */}
         <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between sticky top-0 z-40" style={{ height: '70px' }}>
           <div className="flex items-center gap-4">
@@ -185,7 +185,7 @@ export default function PatientLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-scroll">
+        <main className="flex-1 h-0 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

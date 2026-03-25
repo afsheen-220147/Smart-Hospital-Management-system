@@ -6,6 +6,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const appointmentAutoUpdateService = require('./services/appointmentAutoUpdateService');
+const cron = require('node-cron');
+const doctorStatusService = require('./utils/doctorStatusService');
 
 // Load env vars
 dotenv.config();
@@ -27,9 +29,12 @@ const app = express();
 // Security middleware - Helmet with custom config for dev
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow Google OAuth postMessage/popups
-  contentSecurityPolicy: false // Disable in development
+  crossOriginOpenerPolicy: false // Allow Google OAuth postMessage
 }));
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
 
 // Rate limiting - higher limit for development, stricter for production
 const limiter = rateLimit({
@@ -60,10 +65,23 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// ==========================================
+// FIX #3: Prevent aggressive caching
+// ==========================================
+app.use((req, res, next) => {
+  // Disable caching for all API responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/patients', patientRoutes);
-app.use('/api/v1/doctors', doctorRoutes);
+app.use('/api/v1/doctor', doctorRoutes); // Standardize to /doctor to match frontend calls
+app.use('/api/v1/doctors', doctorRoutes); // Keep /doctors for backward compatibility
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/visits', visitRoutes);
 app.use('/api/v1/admin-doctors', adminDoctorRoutes);
@@ -94,8 +112,7 @@ app.get('/api/v1/public/stats', async (req, res) => {
       data: { patients: patientsCount, doctors: doctorsCount, appointments: apptsCount, departments: 12 }
     });
   } catch (error) {
-    // Return 200 with fallback data instead of 500 to keep landing page functional
-    res.status(200).json({ success: true, data: { patients: 50, doctors: 20, appointments: 120, departments: 12 }});
+    res.status(500).json({ success: false, data: { patients: 50, doctors: 20, appointments: 120, departments: 12 }});
   }
 });
 
@@ -120,6 +137,16 @@ const initializeServer = async () => {
 
     // Start the appointment auto-update job
     appointmentAutoUpdateService.startAppointmentAutoUpdateJob();
+
+    // Start the doctor status update cron job (runs every 5 minutes)
+    cron.schedule('*/5 * * * *', async () => {
+      try {
+        await doctorStatusService.updateAllDoctorsStatus();
+      } catch (error) {
+        console.error('❌ Error in doctor status update cron job:', error.message);
+      }
+    });
+    console.log('✅ Doctor status update cron job started (every 5 minutes)');
 
     // Add MongoDB connection event handlers
     const mongoose = require('mongoose');

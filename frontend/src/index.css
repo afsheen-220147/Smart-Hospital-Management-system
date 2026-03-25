@@ -28,12 +28,18 @@
 
   html {
     scroll-behavior: smooth;
+    height: 100%;
   }
 
   body,
   #root {
     height: 100%;
     font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
+
+  body {
+    overflow: hidden;
   }
 
   :root {
@@ -53,7 +59,8 @@
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
