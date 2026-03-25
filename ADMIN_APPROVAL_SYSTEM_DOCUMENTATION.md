@@ -15,7 +15,7 @@ This implementation enforces a **3-tier admin approval workflow** for all privil
 ✅ **Type-Safe Action Types** - Only valid action types allowed  
 ✅ **Real-time Execution** - Auto-executes when 3rd approval received  
 ✅ **Dashboard & Analytics** - Full visibility into pending/approved actions  
-✅ **Transaction Safety** - Atomic DB operations for data consistency  
+✅ **Transaction Safety** - Atomic DB operations for data consistency
 
 ---
 
@@ -41,17 +41,17 @@ backend/
 
 ## Supported Action Types
 
-| Action Type | Description | Required Fields |
-|---|---|---|
-| `doctor_add` | Add new doctor to system | userId, specialization |
-| `doctor_update` | Update doctor information | doctorId, updateData |
-| `doctor_delete` | Delete doctor account | doctorId, reason |
-| `patient_add` | Add new patient | userId, bloodType |
-| `patient_update` | Update patient info | patientId, updateData |
-| `patient_delete` | Delete patient account | patientId, reason |
-| `user_delete` | Delete user account | userId, reason |
-| `admin_add` | Add new admin | userId |
-| `admin_remove` | Remove admin | adminId, reason |
+| Action Type      | Description               | Required Fields        |
+| ---------------- | ------------------------- | ---------------------- |
+| `doctor_add`     | Add new doctor to system  | userId, specialization |
+| `doctor_update`  | Update doctor information | doctorId, updateData   |
+| `doctor_delete`  | Delete doctor account     | doctorId, reason       |
+| `patient_add`    | Add new patient           | userId, bloodType      |
+| `patient_update` | Update patient info       | patientId, updateData  |
+| `patient_delete` | Delete patient account    | patientId, reason      |
+| `user_delete`    | Delete user account       | userId, reason         |
+| `admin_add`      | Add new admin             | userId                 |
+| `admin_remove`   | Remove admin              | adminId, reason        |
 
 ---
 
@@ -85,6 +85,7 @@ Admin 1 (Initiator)          Admin 2              Admin 3
 ## API Endpoints
 
 ### 1. Initiate Action
+
 ```http
 POST /api/v1/admin/actions/initiate
 Content-Type: application/json
@@ -121,6 +122,7 @@ Response (201):
 ```
 
 ### 2. Approve Action
+
 ```http
 POST /api/v1/admin/actions/:actionId/approve
 Authorization: Bearer <admin2-token>
@@ -152,6 +154,7 @@ Response (200):
 ```
 
 ### 3. Approve Action (3rd Admin - Auto Execute)
+
 ```http
 POST /api/v1/admin/actions/:actionId/approve
 Authorization: Bearer <admin3-token>
@@ -179,6 +182,7 @@ Response (200):
 ```
 
 ### 4. Reject Action
+
 ```http
 POST /api/v1/admin/actions/:actionId/reject
 Content-Type: application/json
@@ -206,6 +210,7 @@ Response (200):
 ```
 
 ### 5. Get Pending Actions for My Approval
+
 ```http
 GET /api/v1/admin/actions/pending
 Authorization: Bearer <admin-token>
@@ -235,6 +240,7 @@ Response (200):
 ```
 
 ### 6. Get Action Details
+
 ```http
 GET /api/v1/admin/actions/:actionId
 Authorization: Bearer <admin-token>
@@ -317,6 +323,7 @@ Response (200):
 ```
 
 ### 7. Get Admin Dashboard
+
 ```http
 GET /api/v1/admin/actions/dashboard
 Authorization: Bearer <admin-token>
@@ -350,6 +357,7 @@ Response (200):
 ```
 
 ### 8. Get Action Statistics
+
 ```http
 GET /api/v1/admin/actions/stats
 Authorization: Bearer <admin-token>
@@ -384,6 +392,7 @@ Response (200):
 ```
 
 ### 9. Cancel Action (Only Initiator)
+
 ```http
 DELETE /api/v1/admin/actions/:actionId
 Content-Type: application/json
@@ -411,6 +420,7 @@ Response (200):
 ### Example 1: Delete Doctor with 3-Admin Approval
 
 **Step 1: Admin 1 initiates deletion**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/initiate \
   -H "Authorization: Bearer admin1_token" \
@@ -426,12 +436,14 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/initiate \
 ```
 
 **Step 2: Admin 2 approves**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011/approve \
   -H "Authorization: Bearer admin2_token"
 ```
 
 **Step 3: Admin 3 approves (triggers auto-execution)**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011/approve \
   -H "Authorization: Bearer admin3_token"
@@ -481,47 +493,47 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
   actionNamespace: String,         // doctor, patient, user, admin, system
   description: String,             // Human-readable action description
   payload: Mixed,                  // Action-specific data
-  
+
   initiatedBy: ObjectId,           // Admin who initiated
   initiatorName: String,           // Cache for display
-  
+
   approvals: [{                    // Track all approvals
     adminId: ObjectId,
     adminName: String,
     approvedAt: Date
   }],
-  
+
   rejections: [{                   // Track all rejections
     adminId: ObjectId,
     adminName: String,
     reason: String,
     rejectedAt: Date
   }],
-  
+
   status: String,                  // pending, approved, executed, rejected, expired
-  
+
   executionResult: {               // Result after execution
     success: Boolean,
     message: String,
     details: Mixed,
     executedAt: Date
   },
-  
+
   expiresAt: Date,                 // Auto-expires after 24 hours
-  
+
   auditLog: [{                     // Complete history
     timestamp: Date,
     action: String,
     adminName: String,
     details: String
   }],
-  
+
   targetEntity: {                  // What entity is affected
     type: String,
     entityId: ObjectId,
     entityName: String
   },
-  
+
   createdAt: Date,
   updatedAt: Date
 }
@@ -533,14 +545,14 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
 
 ### Common Errors
 
-| Error | Status | Solution |
-|---|---|---|
-| Admin cannot approve their own action | 400 | Different admin must approve |
-| Action is already expired | 400 | Initiate new action |
-| Action is already rejected | 400 | Cannot approve rejected action |
-| Admin already approved this action | 400 | Wait for other admins |
-| Invalid action type | 400 | Use valid action type from list |
-| Admin not found | 404 | Verify admin is properly authenticated |
+| Error                                 | Status | Solution                               |
+| ------------------------------------- | ------ | -------------------------------------- |
+| Admin cannot approve their own action | 400    | Different admin must approve           |
+| Action is already expired             | 400    | Initiate new action                    |
+| Action is already rejected            | 400    | Cannot approve rejected action         |
+| Admin already approved this action    | 400    | Wait for other admins                  |
+| Invalid action type                   | 400    | Use valid action type from list        |
+| Admin not found                       | 404    | Verify admin is properly authenticated |
 
 ### Example Error Response
 
@@ -583,16 +595,20 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
 <template>
   <div class="admin-approval">
     <h2>Pending Approvals</h2>
-    
+
     <div v-if="pendingActions.length" class="actions-list">
-      <div v-for="action in pendingActions" :key="action.actionId" class="action-card">
+      <div
+        v-for="action in pendingActions"
+        :key="action.actionId"
+        class="action-card"
+      >
         <h3>{{ action.actionType }}</h3>
         <p>{{ action.description }}</p>
         <p class="initiator">Initiated by: {{ action.initiator.name }}</p>
         <p class="progress">
           {{ action.approvals }}/{{ action.approvalsNeeded }} approvals
         </p>
-        
+
         <div class="actions">
           <button @click="approveAction(action.actionId)" class="btn-approve">
             Approve
@@ -610,36 +626,39 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
 export default {
   data() {
     return {
-      pendingActions: []
+      pendingActions: [],
     };
   },
-  
+
   methods: {
     async loadPendingActions() {
-      const response = await fetch('/api/v1/admin/actions/pending', {
-        headers: { 'Authorization': `Bearer ${this.token}` }
+      const response = await fetch("/api/v1/admin/actions/pending", {
+        headers: { Authorization: `Bearer ${this.token}` },
       });
       this.pendingActions = (await response.json()).data;
     },
-    
+
     async approveAction(actionId) {
-      const response = await fetch(`/api/v1/admin/actions/${actionId}/approve`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.token}` }
-      });
-      
+      const response = await fetch(
+        `/api/v1/admin/actions/${actionId}/approve`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${this.token}` },
+        },
+      );
+
       if (response.ok) {
-        this.$notify.success('Action approved!');
+        this.$notify.success("Action approved!");
         this.loadPendingActions();
       }
-    }
+    },
   },
-  
+
   mounted() {
     this.loadPendingActions();
     // Refresh every 30 seconds
     setInterval(() => this.loadPendingActions(), 30000);
-  }
+  },
 };
 </script>
 ```
@@ -661,16 +680,16 @@ export default {
 
 ```javascript
 // Get stats for today
-GET /api/v1/admin/actions/stats
+GET / api / v1 / admin / actions / stats;
 
 // Most pending for this admin
-GET /api/v1/admin/actions/pending
+GET / api / v1 / admin / actions / pending;
 
 // My action history
-GET /api/v1/admin/actions/initiated
+GET / api / v1 / admin / actions / initiated;
 
 // Full dashboard
-GET /api/v1/admin/actions/dashboard
+GET / api / v1 / admin / actions / dashboard;
 ```
 
 ---
@@ -683,22 +702,26 @@ GET /api/v1/admin/actions/dashboard
 ✅ **Action Expiration**: 24-hour window prevents dormant approvals  
 ✅ **Self-Approval Prevention**: Cannot approve own actions  
 ✅ **Database Transactions**: Atomic operations prevent inconsistency  
-✅ **Payload Validation**: All payloads validated before storage  
+✅ **Payload Validation**: All payloads validated before storage
 
 ---
 
 ## Troubleshooting
 
 ### Issue: "Admin cannot approve their own action"
+
 **Solution**: Use a different admin account to approve
 
 ### Issue: "Action is already expired"
+
 **Solution**: Initiate a new action. Actions expire after 24 hours.
 
 ### Issue: "Admin already approved this action"
+
 **Solution**: Different admins needed for each step
 
 ### Issue: Action not executing on 3rd approval
+
 **Solution**: Check action status and server logs for execution errors
 
 ---
@@ -710,13 +733,14 @@ GET /api/v1/admin/actions/dashboard
 🔐 **2FA for Critical Actions**: Require 2FA for highest-risk actions  
 📊 **Advanced Analytics**: ML-based anomaly detection  
 🌍 **Multi-location Support**: Different approval rules by location  
-🔔 **Real-time Notifications**: WebSocket updates for approvals  
+🔔 **Real-time Notifications**: WebSocket updates for approvals
 
 ---
 
 ## Support
 
 For issues or questions:
+
 1. Check troubleshooting section
 2. Review API documentation
 3. Check audit logs in AdminAction collection

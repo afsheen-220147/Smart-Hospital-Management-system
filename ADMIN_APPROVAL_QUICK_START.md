@@ -8,7 +8,7 @@ Your Smart Hospital Management system now has a **complete 3-admin approval work
 ✅ Add new doctors/patients  
 ✅ Modify doctor/patient information  
 ✅ User management  
-✅ System configuration changes  
+✅ System configuration changes
 
 **No action can be executed without approval from 3 different admins!**
 
@@ -74,6 +74,7 @@ POST /api/v1/admin/actions/:id/approve
 ## Quick API Examples
 
 ### 1. Admin Initiates Doctor Deletion
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/initiate \
   -H "Authorization: Bearer admin1_token" \
@@ -101,6 +102,7 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/initiate \
 ```
 
 ### 2. Admin 2 Approves
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011/approve \
   -H "Authorization: Bearer admin2_token"
@@ -109,6 +111,7 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
 ```
 
 ### 3. Admin 3 Approves & Auto-Executes
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011/approve \
   -H "Authorization: Bearer admin3_token"
@@ -120,40 +123,44 @@ curl -X POST http://localhost:5000/api/v1/admin/actions/507f1f77bcf86cd799439011
 
 ## Supported Action Types
 
-| Action | Purpose | Example |
-|--------|---------|---------|
-| `doctor_add` | Add new doctor | specialization, license |
-| `doctor_update` | Modify doctor info | Update specialization |
-| `doctor_delete` | Remove doctor | Reason: Left hospital |
-| `patient_add` | Add new patient | Blood type, allergies |
-| `patient_update` | Modify patient info | Update medical history |
-| `patient_delete` | Remove patient | Reason: Requested deletion |
-| `user_delete` | Delete any user | Admin removal |
-| `admin_add` | Add new admin | Assign admin role |
-| `admin_remove` | Remove admin | Reason: Retired |
+| Action           | Purpose             | Example                    |
+| ---------------- | ------------------- | -------------------------- |
+| `doctor_add`     | Add new doctor      | specialization, license    |
+| `doctor_update`  | Modify doctor info  | Update specialization      |
+| `doctor_delete`  | Remove doctor       | Reason: Left hospital      |
+| `patient_add`    | Add new patient     | Blood type, allergies      |
+| `patient_update` | Modify patient info | Update medical history     |
+| `patient_delete` | Remove patient      | Reason: Requested deletion |
+| `user_delete`    | Delete any user     | Admin removal              |
+| `admin_add`      | Add new admin       | Assign admin role          |
+| `admin_remove`   | Remove admin        | Reason: Retired            |
 
 ---
 
 ## Key Features
 
 ### 🔐 Security
+
 - Admin cannot approve their own action
 - Full audit trail of all approvals
 - Actions automatically expire after 24 hours
 - Database-backed persistence
 
 ### 🎯 Easy Integration
+
 - Generic `/api/v1/admin/actions/*` endpoints
 - Works with any admin action type
 - Automatic execution on 3rd approval
 
 ### 📊 Visibility
+
 - Dashboard showing pending approvals
 - Statistics by action type
 - Full action history
 - Real-time approval tracking
 
 ### 🛡️ Reliability
+
 - MongoDB transactions
 - Automatic rollback on failure
 - Comprehensive error handling
@@ -207,30 +214,35 @@ grep "/actions" backend/routes/adminRoutes.js
 ## Most Common Tasks
 
 ### Document Action for Later
+
 ```bash
 GET /api/v1/admin/actions/:actionId
 # Returns: Full action details with full audit trail
 ```
 
 ### Check Pending Approvals
+
 ```bash
 GET /api/v1/admin/actions/pending
 # Returns: All actions awaiting this admin's approval
 ```
 
 ### Get Dashboard Summary
+
 ```bash
 GET /api/v1/admin/actions/dashboard
 # Returns: Stats, recent actions, approval counts
 ```
 
 ### Reject an Action
+
 ```bash
 POST /api/v1/admin/actions/:actionId/reject
 Body: { "reason": "Invalid request" }
 ```
 
 ### Cancel My Action
+
 ```bash
 DELETE /api/v1/admin/actions/:actionId
 Body: { "reason": "Initiated by mistake" }
@@ -246,35 +258,35 @@ AdminAction {
   _id: ObjectId,
   actionType: "doctor_delete" | "patient_add" | ...,
   description: "Human readable description",
-  
+
   payload: {
     // Action-specific data
     doctorId: "...",
     reason: "..."
   },
-  
+
   initiatedBy: ObjectId,           // Admin who started
   initiatorName: String,           // Cache for display
-  
+
   approvals: [{                    // Track each approval
     adminId: ObjectId,
     adminName: String,
     approvedAt: Date
   }],
-  
+
   rejections: [{
     adminId: ObjectId,
     reason: String
   }],
-  
+
   status: "pending" | "approved" | "executed" | "rejected" | "expired",
-  
+
   executionResult: {
     success: Boolean,
     message: String,
     details: Object
   },
-  
+
   auditLog: [],                    // Complete history
   expiresAt: Date,                 // Auto-expires 24h
   createdAt: Date,
@@ -286,39 +298,43 @@ AdminAction {
 
 ## Error Handling
 
-| Error | Status | Solution |
-|-------|--------|----------|
-| Admin cannot approve own action | 400 | Use different admin |
-| Action expired | 400 | Initiate new action |
-| Already approved by this admin | 400 | Wait for other admins |
-| Invalid action type | 400 | Use valid type |
-| Not authenticated | 401 | Provide valid token |
-| Not an admin | 403 | Must be admin role |
-| Action not found | 404 | Check action ID |
+| Error                           | Status | Solution              |
+| ------------------------------- | ------ | --------------------- |
+| Admin cannot approve own action | 400    | Use different admin   |
+| Action expired                  | 400    | Initiate new action   |
+| Already approved by this admin  | 400    | Wait for other admins |
+| Invalid action type             | 400    | Use valid type        |
+| Not authenticated               | 401    | Provide valid token   |
+| Not an admin                    | 403    | Must be admin role    |
+| Action not found                | 404    | Check action ID       |
 
 ---
 
 ## Monitoring & Analytics
 
 ### View All Pending Actions
+
 ```bash
 GET /api/v1/admin/actions
 # Returns: All pending actions system-wide
 ```
 
 ### Get My Initiated Actions
+
 ```bash
 GET /api/v1/admin/actions/initiated
 # Returns: Actions I started
 ```
 
 ### Get Approval Statistics
+
 ```bash
 GET /api/v1/admin/actions/stats
 # Returns: Counts by action type and status
 ```
 
 ### Check How Many Need My Approval
+
 ```bash
 GET /api/v1/admin/actions/pending-count
 # Returns: Number waiting for this admin
@@ -333,29 +349,31 @@ function AdminApprovals() {
   const [actions, setActions] = useState([]);
 
   useEffect(() => {
-    fetch('/api/v1/admin/actions/pending', {
-      headers: { 'Authorization': `Bearer ${token}` }
+    fetch("/api/v1/admin/actions/pending", {
+      headers: { Authorization: `Bearer ${token}` },
     })
-    .then(r => r.json())
-    .then(data => setActions(data.data));
+      .then((r) => r.json())
+      .then((data) => setActions(data.data));
   }, []);
 
   const approve = (actionId) => {
     fetch(`/api/v1/admin/actions/${actionId}/approve`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     })
-    .then(() => alert('Approved!'))
-    .then(() => location.reload()); // Refresh
+      .then(() => alert("Approved!"))
+      .then(() => location.reload()); // Refresh
   };
 
   return (
     <div>
-      {actions.map(a => (
+      {actions.map((a) => (
         <div key={a.actionId}>
           <h3>{a.actionType}</h3>
           <p>By: {a.initiator.name}</p>
-          <p>Approvals: {a.approvals}/{a.approvalsNeeded}</p>
+          <p>
+            Approvals: {a.approvals}/{a.approvalsNeeded}
+          </p>
           <button onClick={() => approve(a.actionId)}>Approve</button>
         </div>
       ))}
@@ -369,17 +387,22 @@ function AdminApprovals() {
 ## Troubleshooting
 
 ### Issue: "AdminAction is not defined"
-**Solution**: 
+
+**Solution**:
+
 ```bash
 cd backend && npm install mongoose
 # Make sure AdminAction.js is in models/
 ```
 
 ### Issue: "Cannot connect to MongoDB"
+
 **Solution**: Check `backend/config/db.js` and ensure MongoDB is running
 
 ### Issue: Routes not working
+
 **Solution**:
+
 ```bash
 # Check if adminApprovalController is imported
 grep "adminApprovalController" backend/routes/adminRoutes.js
@@ -389,6 +412,7 @@ grep "adminRoutes" backend/server.js
 ```
 
 ### Issue: 3rd approval doesn't execute
+
 **Solution**: Check server logs for errors in `adminApprovalService.executeAction()`
 
 ---
@@ -396,18 +420,21 @@ grep "adminRoutes" backend/server.js
 ## Next Steps
 
 ### ✅ For Admins
+
 1. Understand the approval flow
 2. Learn to use the dashboard
 3. Set up approval notifications
 4. Train other admins
 
 ### ✅ For Developers
+
 1. Update doctorController to use approval system
 2. Update patientController to use approval system
 3. Add approval middleware to sensitive routes
 4. Implement frontend UI for approvals
 
 ### ✅ For DevOps
+
 1. Monitor AdminAction collection growth
 2. Set up indexes on MongoDB (done automatically)
 3. Configure action expiration cleanup job
@@ -418,12 +445,14 @@ grep "adminRoutes" backend/server.js
 ## Documentation Links
 
 📖 **[Full API Documentation](ADMIN_APPROVAL_SYSTEM_DOCUMENTATION.md)**
+
 - All endpoints with request/response examples
 - Error codes and solutions
 - Security considerations
 - Best practices
 
 📖 **[Implementation Guide](ADMIN_APPROVAL_IMPLEMENTATION_GUIDE.md)**
+
 - How to integrate with controllers
 - Frontend code examples
 - Testing procedures
