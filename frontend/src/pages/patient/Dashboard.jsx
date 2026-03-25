@@ -84,7 +84,7 @@ export default function PatientDashboard() {
   }, [user, isDemoUser])
 
   const stats = [
-    { label: 'All Appointments', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total Appointments', value: appointments.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Visits', value: isDemoUser ? 12 : visits.length, icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Lab Reports', value: isDemoUser ? 3 : 0, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
   ]
@@ -103,7 +103,7 @@ export default function PatientDashboard() {
       <div className="card bg-gradient-to-r from-blue-600 to-blue-800 text-white border-none shadow-lg !p-8">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Patient'}! 👋</h1>
         <p className="text-blue-100 mb-6 max-w-xl">
-          Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} appointments.` : 'You have no appointments scheduled.'}
+          Your health dashboard is ready. {appointments.length > 0 ? `You have ${appointments.length} total appointments.` : 'You have no appointments scheduled.'}
         </p>
         <div className="flex flex-wrap gap-4">
           <Link to="/patient/book" className="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 font-bold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-sm">
