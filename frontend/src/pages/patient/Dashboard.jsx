@@ -4,6 +4,7 @@ import { Calendar, User, FileText, Bot, Clock, ArrowRight, ShieldCheck, HeartPul
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { showError } from '../../utils/toast'
+import PatientConsent from '../../components/PatientConsent'
 
 export default function PatientDashboard() {
   const { user } = useAuth()
@@ -234,6 +235,9 @@ export default function PatientDashboard() {
 
         {/* Right Col - Health Summary */}
         <div className="space-y-6">
+          {/* Verification Code - Always Visible */}
+          <PatientConsent patientId={user?._id || user?.id} />
+
           <div className="card p-0 overflow-hidden sticky top-6">
             <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full overflow-hidden shadow-inner border border-gray-100">
