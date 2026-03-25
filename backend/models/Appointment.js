@@ -86,9 +86,11 @@ const appointmentSchema = new mongoose.Schema({
   // Consultation State Tracking
   consultationState: {
     type: String,
-    enum: ['not_started', 'in_progress', 'completed'],
+    enum: ['not_started', 'active', 'paused', 'completed'],
     default: 'not_started'
   },
+  pausedAt: Date,
+  resumedAt: Date,
   estimatedStartTime: Date,
   estimatedEndTime: Date,
   queuePosition: {

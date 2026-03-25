@@ -13,7 +13,9 @@ const {
   endConsultation,
   uploadMedicalReport,
   cancelAppointmentByDoctor,
-  autoCancelNoShows
+  autoCancelNoShows,
+  pauseAppointment,
+  resumeAppointment
 } = require('../controllers/appointmentController');
 
 const { uploadReport } = require('../config/cloudinary');
@@ -35,6 +37,12 @@ router.get('/:id', getAppointmentDetails);
 
 // Start consultation
 router.post('/:id/start', authorize('doctor', 'admin'), startConsultation);
+
+// Pause consultation
+router.post('/:id/pause', authorize('doctor', 'admin'), pauseAppointment);
+
+// Resume consultation
+router.post('/:id/resume', authorize('doctor', 'admin'), resumeAppointment);
 
 // End consultation
 router.post('/:id/end', authorize('doctor', 'admin'), endConsultation);

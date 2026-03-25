@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Search, RefreshCw, Calendar as CalendarIcon, 
-  ChevronLeft, ChevronRight, Filter
+  ChevronLeft, ChevronRight, Filter, Pause, Play
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import { showSuccess, showError } from '../../utils/toast';
 
 // Components
 import AppointmentList from '../../components/appointments/dashboard/AppointmentList';
@@ -162,7 +163,7 @@ export default function DoctorAppointments() {
   const handleStart = async (appointment) => {
     // Logic check: Only allowed if date is Today and status is correct
     if (dateMode === 'previous') {
-        alert("Cannot start past appointments.");
+        showError("Cannot start past appointments.");
         return;
     }
 
@@ -171,9 +172,42 @@ export default function DoctorAppointments() {
         setIsProcessing(true);
         await api.post(`/appointments/${appointment._id}/start`);
         await fetchData(true);
+        showSuccess(`Consultation started with ${appointment.patientName}`);
       } catch (err) {
         console.error("Start failed", err);
-        alert(err.response?.data?.message || "Failed to start consultation");
+        showError(err.response?.data?.message || "Failed to start consultation");
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  const handlePause = async (appointment) => {
+    if (window.confirm(`Pause consultation for ${appointment.patientName}?`)) {
+      try {
+        setIsProcessing(true);
+        await api.post(`/appointments/${appointment._id}/pause`);
+        await fetchData(true);
+        showSuccess(`Consultation paused. You can resume later.`);
+      } catch (err) {
+        console.error("Pause failed", err);
+        showError(err.response?.data?.message || "Failed to pause consultation");
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  const handleResume = async (appointment) => {
+    if (window.confirm(`Resume consultation for ${appointment.patientName}?`)) {
+      try {
+        setIsProcessing(true);
+        await api.post(`/appointments/${appointment._id}/resume`);
+        await fetchData(true);
+        showSuccess(`Consultation resumed with ${appointment.patientName}`);
+      } catch (err) {
+        console.error("Resume failed", err);
+        showError(err.response?.data?.message || "Failed to resume consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -186,10 +220,11 @@ export default function DoctorAppointments() {
         setIsProcessing(true);
         await api.post(`/appointments/${appointment._id}/end`);
         await fetchData(true);
+        showSuccess(`Consultation completed successfully!`);
         // Don't close details immediately so doctor can upload report
       } catch (err) {
         console.error("End failed", err);
-        alert(err.response?.data?.message || "Failed to end consultation");
+        showError(err.response?.data?.message || "Failed to end consultation");
       } finally {
         setIsProcessing(false);
       }
@@ -363,6 +398,8 @@ export default function DoctorAppointments() {
             onStart={handleStart}
             onEnd={handleEnd}
             onCancel={handleCancelClick}
+            onPause={handlePause}
+            onResume={handleResume}
             className="h-full w-full"
             isToday={dateMode === 'today'}
             refreshData={() => fetchData(true)}

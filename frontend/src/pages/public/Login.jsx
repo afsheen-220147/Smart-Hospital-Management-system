@@ -51,7 +51,7 @@ export default function Login() {
       const msg = getErrorMessage(err, 'Invalid email or password.')
       // Show inline for credential-specific errors
       if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('password') || msg.toLowerCase().includes('credentials') || msg.toLowerCase().includes('invalid')) {
-        setFieldErrors({ credentials: msg })
+        setFieldErrors({ credentials: msg, suggestRegister: true })
       } else {
         showError(msg)
       }
@@ -144,14 +144,19 @@ export default function Login() {
 
           {/* Inline credential error */}
           {fieldErrors.credentials && (
-            <div className="mb-5 flex items-start gap-2 bg-red-50 text-red-600 text-sm p-3.5 rounded-xl border border-red-100 animate-fadeIn">
-              <AlertCircle size={17} className="mt-0.5 flex-shrink-0" />
-              <div>
+            <div className="mb-5 flex flex-col gap-3 bg-red-50 text-red-600 text-sm p-3.5 rounded-xl border border-red-100 animate-fadeIn">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={17} className="mt-0.5 flex-shrink-0" />
                 <span>{fieldErrors.credentials}</span>
-                {fieldErrors.credentials.toLowerCase().includes('account already') && (
-                  <Link to="/register" className="ml-1 text-blue-600 font-semibold hover:underline text-xs">Create Account</Link>
-                )}
               </div>
+              {fieldErrors.suggestRegister && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-gray-600">Don't have an account?</span>
+                  <Link to="/register" className="text-blue-600 font-semibold hover:underline hover:text-blue-700">
+                    Register Now →
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

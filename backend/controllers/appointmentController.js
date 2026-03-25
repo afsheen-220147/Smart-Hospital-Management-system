@@ -745,14 +745,14 @@ exports.startConsultation = asyncHandler(async (req, res, next) => {
   const doctor = await Doctor.findById(appointment.doctor);
   if (doctor.currentConsultationId && doctor.currentConsultationId.toString() !== appointment._id.toString()) {
     const existingConsultation = await Appointment.findById(doctor.currentConsultationId);
-    if (existingConsultation && existingConsultation.consultationState === 'in_progress') {
+    if (existingConsultation && existingConsultation.consultationState === 'active') {
       res.status(409);
       throw new Error('Another consultation is already in progress for this doctor');
     }
   }
 
   // Update appointment
-  appointment.consultationState = 'in_progress';
+  appointment.consultationState = 'active';
   appointment.status = 'in-progress';
   appointment.actualStartTime = new Date();
   await appointment.save();
@@ -795,10 +795,10 @@ exports.endConsultation = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Validate consultation is in progress
-  if (appointment.consultationState !== 'in_progress') {
+  // Validate consultation is in progress (or paused)
+  if (!['active', 'paused'].includes(appointment.consultationState)) {
     res.status(400);
-    throw new Error(`Consultation is not in progress. Current state: ${appointment.consultationState}`);
+    throw new Error(`Consultation cannot be ended. Current state: ${appointment.consultationState}`);
   }
 
   // Calculate actual delay
@@ -1029,5 +1029,77 @@ exports.autoCancelNoShows = asyncHandler(async (req, res, next) => {
       cancelledCount: cancelledAppointments.length,
       cancelledAppointments
     }
+  });
+});
+
+// @desc    Pause an in-progress appointment
+// @route   POST /api/v1/appointments/:id/pause
+// @access  Private (Doctor)
+exports.pauseAppointment = asyncHandler(async (req, res, next) => {
+  const appointment = await Appointment.findById(req.params.id);
+
+  if (!appointment) {
+    res.status(404);
+    throw new Error('Appointment not found');
+  }
+
+  // Only in-progress appointments can be paused
+  if (appointment.status !== 'in-progress') {
+    res.status(400);
+    throw new Error(`Cannot pause appointment with status: ${appointment.status}`);
+  }
+
+  // Check doctor authorization
+  const doctor = await Doctor.findOne({ user: req.user.id });
+  if (!doctor || doctor._id.toString() !== appointment.doctor.toString()) {
+    res.status(403);
+    throw new Error('You can only pause your own consultations');
+  }
+
+  // Update consultation state to paused
+  appointment.consultationState = 'paused';
+  appointment.pausedAt = new Date();
+  await appointment.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Consultation paused successfully',
+    data: appointment
+  });
+});
+
+// @desc    Resume a paused appointment
+// @route   POST /api/v1/appointments/:id/resume
+// @access  Private (Doctor)
+exports.resumeAppointment = asyncHandler(async (req, res, next) => {
+  const appointment = await Appointment.findById(req.params.id);
+
+  if (!appointment) {
+    res.status(404);
+    throw new Error('Appointment not found');
+  }
+
+  // Only in-progress appointments that are paused can be resumed
+  if (appointment.status !== 'in-progress' || appointment.consultationState !== 'paused') {
+    res.status(400);
+    throw new Error('Can only resume paused consultations');
+  }
+
+  // Check doctor authorization
+  const doctor = await Doctor.findOne({ user: req.user.id });
+  if (!doctor || doctor._id.toString() !== appointment.doctor.toString()) {
+    res.status(403);
+    throw new Error('You can only resume your own consultations');
+  }
+
+  // Update consultation state back to active
+  appointment.consultationState = 'active';
+  appointment.resumedAt = new Date();
+  await appointment.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Consultation resumed successfully',
+    data: appointment
   });
 });

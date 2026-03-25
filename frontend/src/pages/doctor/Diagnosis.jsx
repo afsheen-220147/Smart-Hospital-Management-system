@@ -4,6 +4,7 @@ import { Clock, FileText, CheckCircle, Search, Save, Upload, Activity, AlertCirc
 import { useAuth } from '../../contexts/AuthContext'
 import api, { uploadFile } from '../../services/api'
 import { checkPrescriptionSafety } from '../../services/ai'
+import { showSuccess, showError } from '../../utils/toast'
 
 export default function Diagnosis() {
   const { user } = useAuth()
@@ -38,7 +39,7 @@ export default function Diagnosis() {
           try {
             const profRes = await api.get('/doctors/me')
             const apptRes = await api.get(`/appointments/doctor/${profRes.data.data._id}`, {
-              params: { status: 'in-progress' }
+              params: { status: 'confirmed,in-progress' }
             })
             realAppts = (apptRes.data.data || [])
           } catch (e) {
@@ -115,6 +116,7 @@ export default function Diagnosis() {
       // Remove the completed appointment from the dropdown
       setAppointments(prev => prev.filter(a => a._id !== selectedApptId))
 
+      showSuccess('Consultation completed and record finalized! Patient notified via email.')
       setSaved(true)
       setSelectedApptId(''); setDiag(''); setRx(''); setNotes(''); setSelectedFile(null); setRecordType('Prescription')
 
@@ -123,6 +125,7 @@ export default function Diagnosis() {
       console.error("Save diagnosis failed:", err)
       const errMsg = err.response?.data?.message || err.message || "Failed to save record. Please try again."
       setError(errMsg)
+      showError(errMsg)
     } finally {
       setIsSaving(false)
     }
