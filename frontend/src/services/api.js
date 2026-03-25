@@ -14,6 +14,14 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${user.token}`;
     }
 
+    // ==========================================
+    // FIX #4: Prevent API response caching
+    // ==========================================
+    config.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate';
+    config.headers['Pragma'] = 'no-cache';
+    config.params = config.params || {};
+    config.params._t = Date.now(); // Cache-busting timestamp
+
     // Explicitly set Content-Type to application/json if it's not FormData
     if (!(config.data instanceof FormData)) {
       config.headers['Content-Type'] = 'application/json';

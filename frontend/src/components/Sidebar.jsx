@@ -31,6 +31,7 @@ const adminLinks = [
   { to: '/admin/doctors', label: 'Manage Doctors', icon: UserCog },
   { to: '/admin/patients', label: 'Manage Patients', icon: Users },
   { to: '/admin/appointments', label: 'Appointments', icon: CalendarCheck },
+  { to: '/admin/off-duty', label: 'Off-Duty Requests', icon: Clock },
   { to: '/admin/reports', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]

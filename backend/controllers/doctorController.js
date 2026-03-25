@@ -67,9 +67,9 @@ exports.getMyProfile = asyncHandler(async (req, res, next) => {
     doctor = await Doctor.create({
       user: req.user.id,
       specialization: 'General',
-      experience: 0,
-      fees: 0,
-      about: '',
+      experience: 1, // Changed from 0 to 1 to pass validation
+      fees: 100, // Changed from 0 to 100
+      about: 'General practice',
       image: ''
     });
     doctor = await Doctor.findById(doctor._id).populate('user', 'name email');

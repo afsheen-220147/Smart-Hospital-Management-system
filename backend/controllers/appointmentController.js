@@ -56,6 +56,7 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
   req.body.patient = req.user.id;
 
   const { doctor, date, timeSlot, duration = 30 } = req.body;
+  const offDutyService = require('../services/offDutyService');
 
   // Validate doctor exists
   const doctorData = await Doctor.findById(doctor);
@@ -69,6 +70,28 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
   if (appointmentDate < new Date()) {
     res.status(400);
     throw new Error('Cannot book appointment in the past');
+  }
+
+  // ===== BOOKING CONSTRAINT: Only today or tomorrow =====
+  const availability = offDutyService.isAppointmentDateAvailable(appointmentDate);
+  if (!availability.available) {
+    res.status(400);
+    throw new Error(availability.reason);
+  }
+
+  // ===== Check if doctor is off-duty for this appointment =====
+  const appointmentSession = offDutyService.getSessionFromTimeSlot(timeSlot);
+  if (appointmentSession) {
+    const doctorOffDutyStatus = await offDutyService.getDoctorOffDutyStatus(
+      doctor,
+      appointmentDate,
+      appointmentSession
+    );
+
+    if (doctorOffDutyStatus) {
+      res.status(400);
+      throw new Error(`Dr. ${doctorData.user?.name || 'This doctor'} is unavailable for ${appointmentSession} session on ${new Date(appointmentDate).toLocaleDateString()}. Please choose a different date or time.`);
+    }
   }
 
   // Calculate end time
@@ -528,67 +551,110 @@ exports.rescheduleAppointment = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/appointments/doctor/:doctorId/available-slots
 // @access  Private
 exports.getAvailableSlots = asyncHandler(async (req, res, next) => {
-  const { doctorId } = req.params;
-  const { date } = req.query;
+  const { doctorId, date } = req.query;
 
-  if (!date) {
+  // Validate required parameters
+  if (!doctorId || !date) {
     res.status(400);
-    throw new Error('Please provide a date');
+    throw new Error('doctorId and date are required');
   }
 
-  const doctor = await Doctor.findById(doctorId);
-  if (!doctor) {
-    res.status(404);
-    throw new Error('Doctor not found');
+  // Validate date format (YYYY-MM-DD)
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(date)) {
+    res.status(400);
+    throw new Error('Date must be in YYYY-MM-DD format');
   }
 
-  // Default working hours: 9 AM to 5 PM, 30-minute slots
-  const workingHours = { start: 9, end: 17 };
-  const slotDuration = 30; // minutes
+  try {
+    // Find all non-cancelled appointments for that doctor on that date
+    const parsedDate = new Date(date);
+    const nextDate = new Date(parsedDate);
+    nextDate.setDate(nextDate.getDate() + 1);
 
-  const selectedDate = new Date(date);
-  const dateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const appointments = await Appointment.find({
+      doctor: doctorId,
+      date: {
+        $gte: parsedDate,
+        $lt: nextDate
+      },
+      status: { $ne: 'cancelled' }
+    }).select('timeSlot');
 
-  // Get all booked appointments for that doctor on that date
-  const bookedAppointments = await Appointment.find({
-    doctor: doctorId,
-    date: {
-      $gte: dateOnly,
-      $lt: new Date(dateOnly.getTime() + 24 * 60 * 60 * 1000)
-    },
-    status: { $in: ['pending', 'confirmed', 'in-progress'] }
-  });
+    // ✅ CORRECT WORKING HOURS:
+    // Morning: 9:00 AM - 12:00 PM
+    // Afternoon: 1:00 PM (13:00) - 5:00 PM (17:00)
+    const ALL_SLOTS = [
+      // Morning Session: 9 AM - 12 PM
+      '09:00 AM',
+      '09:30 AM',
+      '10:00 AM',
+      '10:30 AM',
+      '11:00 AM',
+      '11:30 AM',
+      '12:00 PM',
+      // Afternoon Session: 1 PM - 5 PM
+      '01:00 PM',
+      '01:30 PM',
+      '02:00 PM',
+      '02:30 PM',
+      '03:00 PM',
+      '03:30 PM',
+      '04:00 PM',
+      '04:30 PM',
+      '05:00 PM'
+    ];
 
-  // Generate all possible slots
-  const allSlots = [];
-  for (let hour = workingHours.start; hour < workingHours.end; hour++) {
-    for (let minute = 0; minute < 60; minute += slotDuration) {
-      const timeSlot = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      allSlots.push(timeSlot);
-    }
-  }
+    // Extract booked slots from appointments
+    const bookedSlots = appointments
+      .map(apt => apt.timeSlot)
+      .filter(Boolean); // Filter out any null/undefined
 
-  // Filter out booked slots
-  const availableSlots = allSlots.filter(timeSlot => {
-    const [hours, minutes] = timeSlot.split(':').map(Number);
-    const slotStart = hours * 60 + minutes;
-    const slotEnd = slotStart + slotDuration;
+    // Calculate available slots
+    const availableSlots = ALL_SLOTS.filter(slot => !bookedSlots.includes(slot));
 
-    return !bookedAppointments.some(apt => {
-      const [aptHours, aptMinutes] = apt.timeSlot.split(':').map(Number);
-      const aptStart = aptHours * 60 + aptMinutes;
-      const aptEnd = aptStart + (apt.duration || 30);
+    // Group slots by session for frontend
+    const MORNING_SLOTS = ALL_SLOTS.slice(0, 7);  // First 7 slots
+    const AFTERNOON_SLOTS = ALL_SLOTS.slice(7);   // Remaining slots
 
-      return !(slotEnd <= aptStart || slotStart >= aptEnd);
+    const bookedMorning = bookedSlots.filter(slot => MORNING_SLOTS.includes(slot));
+    const bookedAfternoon = bookedSlots.filter(slot => AFTERNOON_SLOTS.includes(slot));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        date,
+        doctorId,
+        allSlots: ALL_SLOTS,
+        bookedSlots,
+        availableSlots,
+        sessions: {
+          morning: {
+            label: 'Morning (9:00 AM - 12:00 PM)',
+            slots: MORNING_SLOTS,
+            booked: bookedMorning,
+            available: MORNING_SLOTS.filter(slot => !bookedMorning.includes(slot))
+          },
+          afternoon: {
+            label: 'Afternoon (1:00 PM - 5:00 PM)',
+            slots: AFTERNOON_SLOTS,
+            booked: bookedAfternoon,
+            available: AFTERNOON_SLOTS.filter(slot => !bookedAfternoon.includes(slot))
+          }
+        },
+        summary: {
+          totalSlots: ALL_SLOTS.length,
+          bookedCount: bookedSlots.length,
+          availableCount: availableSlots.length,
+          occupancyPercent: Math.round((bookedSlots.length / ALL_SLOTS.length) * 100)
+        }
+      }
     });
-  });
-
-  res.status(200).json({
-    success: true,
-    date: dateOnly.toISOString().split('T')[0],
-    availableSlots,
-    totalSlots: availableSlots.length
-  });
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    res.status(500);
+    throw new Error(`Failed to fetch available slots: ${error.message}`);
+  }
 });
 
 // @desc    Delete appointment (soft delete / cancellation)

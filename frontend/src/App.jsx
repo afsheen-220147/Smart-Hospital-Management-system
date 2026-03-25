@@ -35,12 +35,14 @@ const PatientDetails = React.lazy(() => import('./pages/doctor/PatientDetails'))
 const Diagnosis = React.lazy(() => import('./pages/doctor/Diagnosis'))
 const Schedule = React.lazy(() => import('./pages/doctor/Schedule'))
 const DoctorProfile = React.lazy(() => import('./pages/doctor/Profile'))
+const RequestLeave = React.lazy(() => import('./pages/doctor/RequestLeave'))
 
 // Admin
 const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'))
 const ManageDoctors = React.lazy(() => import('./pages/admin/ManageDoctors'))
 const ManagePatients = React.lazy(() => import('./pages/admin/ManagePatients'))
 const AppointmentManagement = React.lazy(() => import('./pages/admin/AppointmentManagement'))
+const OffDutyManagement = React.lazy(() => import('./pages/admin/OffDutyManagement'))
 const Reports = React.lazy(() => import('./pages/admin/Reports'))
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings'))
 
@@ -69,6 +71,32 @@ const LoadingFallback = () => (
 )
 
 export default function App() {
+  // ==========================================
+  // FIX #6: Reset scroll & fix overflow on load
+  // ==========================================
+  React.useEffect(() => {
+    // Ensure body scroll is enabled
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }, [])
+
+  // ==========================================
+  // FIX #7: Version-based hard reload on deploy
+  // ==========================================
+  React.useEffect(() => {
+    const APP_VERSION = '1.1.0'; // Update this when deploying UI changes
+    const storedVersion = sessionStorage.getItem('app_version');
+
+    if (storedVersion !== APP_VERSION) {
+      sessionStorage.setItem('app_version', APP_VERSION);
+      // Force reload to get latest assets
+      window.location.reload();
+    }
+  }, [])
+
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -216,6 +244,11 @@ export default function App() {
                 <DoctorProfile />
               </Suspense>
             } />
+            <Route path="off-duty" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <RequestLeave />
+              </Suspense>
+            } />
           </Route>
 
           {/* Admin Routes */}
@@ -242,6 +275,11 @@ export default function App() {
             <Route path="appointments" element={
               <Suspense fallback={<LoadingFallback />}>
                 <AppointmentManagement />
+              </Suspense>
+            } />
+            <Route path="off-duty" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <OffDutyManagement />
               </Suspense>
             } />
             <Route path="reports" element={

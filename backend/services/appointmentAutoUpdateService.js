@@ -35,7 +35,7 @@ const parseTimeSlot = (date, timeSlot) => {
 const updateExpiredAppointments = async () => {
   try {
     const now = new Date();
-
+    console.log(`\n[${now.toISOString()}] Running appointment auto-update check...`);
 
     // Find all confirmed appointments where the appointment time has passed
     // We fetch all unfinished appointments and check each one individually
@@ -108,9 +108,10 @@ const updateExpiredAppointments = async () => {
             const template = emailTemplates.appointmentCancellation(emailData);
 
             await require('../utils/sendEmail')({
-              to: appointment.patient.email,
+              email: appointment.patient.email,
               subject: template.subject,
-              html: template.html
+              message: template.html,
+              isHtml: true
             });
 
             console.log(`✅ Cancellation notification email sent to ${appointment.patient.email}`);
@@ -125,7 +126,7 @@ const updateExpiredAppointments = async () => {
       }
     }
 
-
+    console.log(`✅ Appointment auto-update completed: ${updatedCount} cancelled, ${errorCount} errors\n`);
     return { updated: updatedCount, errors: errorCount };
   } catch (error) {
     console.error('Critical error in updateExpiredAppointments:', error);
