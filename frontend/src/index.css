@@ -28,18 +28,11 @@
 
   html {
     scroll-behavior: smooth;
-    height: 100%;
   }
 
   body,
   #root {
-    height: 100%;
     font-family: 'Inter', sans-serif;
-    overflow: hidden;
-  }
-
-  body {
-    overflow: hidden;
   }
 
   :root {
