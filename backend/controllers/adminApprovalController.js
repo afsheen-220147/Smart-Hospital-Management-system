@@ -1,391 +1,442 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const asyncHandler = require('express-async-handler');
 const adminApprovalService = require('../services/adminApprovalService');
+const AdminAction = require('../models/AdminAction');
 
-const usersPath = path.join(__dirname, '../_data/users.json');
-let admins = [];
-let pendingActions = new Map();
+/**
+ * @desc    Initiate a privileged admin action (requires 3 approvals to execute)
+ * @route   POST /api/v1/admin/actions/initiate
+ * @access  Private/Admin
+ */
+exports.initiateAction = asyncHandler(async (req, res) => {
+  const { actionType, description, payload, targetEntity } = req.body;
+  const adminId = req.user._id;
+  const adminName = req.user.name;
 
-const loadAdmins = () => {
-  try {
-    const data = fs.readFileSync(usersPath, 'utf8');
-    const users = JSON.parse(data);
-    admins = users.filter(u => u.role === 'admin').slice(0, 5);
-    return admins;
-  } catch (err) {
-    console.error('Error loading admins:', err);
-    return [];
-  }
-};
-
-loadAdmins();
-
-const getAdminById = (adminId) => {
-  return admins.find(a => a.id === adminId);
-};
-
-const getAdminByEmailPassword = (email, password) => {
-  return admins.find(a => a.email === email && a.password === password);
-};
-
-exports.login = (req, res) => {
-  const { email, password } = req.body;
-  
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
+  if (!actionType || !description) {
+    res.status(400);
+    throw new Error('Action type and description are required');
   }
 
-  const admin = getAdminByEmailPassword(email, password);
-  
-  if (!admin) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  // Validate action type
+  const validActions = [
+    'doctor_add',
+    'doctor_update',
+    'doctor_delete',
+    'patient_add',
+    'patient_update',
+    'patient_delete',
+    'user_delete',
+    'admin_add',
+    'admin_remove'
+  ];
+
+  if (!validActions.includes(actionType)) {
+    res.status(400);
+    throw new Error(`Invalid action type: ${actionType}`);
   }
 
-  res.json({ adminId: admin.id, name: admin.name, email: admin.email });
-};
-
-exports.initiateAction = (req, res) => {
-  const { adminId, actionType, payload } = req.body;
-
-  if (!adminId || !actionType) {
-    return res.status(400).json({ error: 'adminId and actionType required' });
-  }
-
-  const admin = getAdminById(adminId);
-  if (!admin) {
-    return res.status(403).json({ error: 'Admin not found' });
-  }
-
-  const actionId = 'action_' + crypto.randomBytes(8).toString('hex');
-  
-  const action = {
-    id: actionId,
-    type: actionType,
-    payload: payload || {},
-    initiatorId: adminId,
-    approvals: [adminId],
-    rejectedBy: null,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-
-  pendingActions.set(actionId, action);
-
-  res.json({ 
-    actionId, 
-    status: 'pending',
-    approvals: 1,
-    approvalsNeeded: 3,
-    initiator: admin.name
-  });
-};
-
-exports.approveAction = (req, res) => {
-  const { adminId, actionId } = req.body;
-
-  if (!adminId || !actionId) {
-    return res.status(400).json({ error: 'adminId and actionId required' });
-  }
-
-  const admin = getAdminById(adminId);
-  if (!admin) {
-    return res.status(403).json({ error: 'Admin not found' });
-  }
-
-  const action = pendingActions.get(actionId);
-  if (!action) {
-    return res.status(404).json({ error: 'Action not found' });
-  }
-
-  if (action.status !== 'pending') {
-    return res.status(400).json({ error: `Action is already ${action.status}` });
-  }
-
-  if (action.approvals.includes(adminId)) {
-    return res.status(400).json({ error: 'Admin already approved this action' });
-  }
-
-  action.approvals.push(adminId);
-
-  if (action.approvals.length >= 3) {
-    action.status = 'approved';
-    console.log(`✓ Action ${actionId} APPROVED by ${admin.name}. Executing...`);
-    console.log(`  Type: ${action.type}`);
-    console.log(`  Payload: ${JSON.stringify(action.payload)}`);
-    console.log(`  Approvals: ${action.approvals.map(id => getAdminById(id).name).join(', ')}`);
-    
-    // Execute the action
-    adminApprovalService.executeAction(action.type, action.payload)
-      .then(result => {
-        action.executionResult = result;
-        console.log(`✓ Action execution completed:`, result);
-      })
-      .catch(err => {
-        action.status = 'error';
-        action.error = err.message;
-        console.error(`✗ Action execution failed:`, err.message);
-      });
-  }
-
-  res.json({
-    actionId,
-    status: action.status,
-    approvals: action.approvals.length,
-    approvalsNeeded: 3,
-    approvedBy: action.approvals.map(id => {
-      const a = getAdminById(id);
-      return { id, name: a.name };
-    })
-  });
-};
-
-exports.rejectAction = (req, res) => {
-  const { adminId, actionId } = req.body;
-
-  if (!adminId || !actionId) {
-    return res.status(400).json({ error: 'adminId and actionId required' });
-  }
-
-  const admin = getAdminById(adminId);
-  if (!admin) {
-    return res.status(403).json({ error: 'Admin not found' });
-  }
-
-  const action = pendingActions.get(actionId);
-  if (!action) {
-    return res.status(404).json({ error: 'Action not found' });
-  }
-
-  if (action.status !== 'pending') {
-    return res.status(400).json({ error: `Action is already ${action.status}` });
-  }
-
-  action.status = 'rejected';
-  action.rejectedBy = adminId;
-
-  console.log(`✗ Action ${actionId} REJECTED by ${admin.name}`);
-
-  res.json({
-    actionId,
-    status: 'rejected',
-    rejectedBy: { id: adminId, name: admin.name }
-  });
-};
-
-exports.getActions = (req, res) => {
-  const actions = Array.from(pendingActions.values()).map(action => ({
-    id: action.id,
-    type: action.type,
-    status: action.status,
-    initiator: {
-      id: action.initiatorId,
-      name: getAdminById(action.initiatorId).name
-    },
-    approvals: action.approvals.length,
-    approvalsNeeded: 3,
-    approvedBy: action.approvals.map(id => {
-      const a = getAdminById(id);
-      return { id, name: a.name };
-    }),
-    createdAt: action.createdAt,
-    payload: action.payload
-  }));
-
-  res.json(actions);
-};
-
-exports.getActionById = (req, res) => {
-  const { actionId } = req.params;
-
-  const action = pendingActions.get(actionId);
-  if (!action) {
-    return res.status(404).json({ error: 'Action not found' });
-  }
-
-  const initiator = getAdminById(action.initiatorId);
-
-  res.json({
-    id: action.id,
-    type: action.type,
-    status: action.status,
-    initiator: {
-      id: action.initiatorId,
-      name: initiator.name
-    },
-    approvals: action.approvals.length,
-    approvalsNeeded: 3,
-    approvedBy: action.approvals.map(id => {
-      const a = getAdminById(id);
-      return { id, name: a.name };
-    }),
-    createdAt: action.createdAt,
-    payload: action.payload
-  });
-};
-
-// Export pendingActions for use by other controllers
-exports.getPendingActions = () => pendingActions;
-
-// Create action externally (used by doctor deletion and other privileged actions)
-exports.createPendingAction = (initiatorId, actionType, payload) => {
-  const actionId = 'action_' + crypto.randomBytes(8).toString('hex');
-  
-  const action = {
-    id: actionId,
-    type: actionType,
-    payload: payload || {},
-    initiatorId: initiatorId,
-    approvals: [initiatorId],
-    rejectedBy: null,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-
-  pendingActions.set(actionId, action);
-  return action;
-};
-
-// Get all pending actions summary for admins
-exports.getPendingActionsSummary = (req, res) => {
-  const pendingList = Array.from(pendingActions.values())
-    .filter(a => a.status === 'pending')
-    .map(action => {
-      const initiator = getAdminById(action.initiatorId);
-      const pendingAdmins = admins
-        .filter(admin => !action.approvals.includes(admin.id))
-        .map(admin => ({ id: admin.id, name: admin.name }));
-
-      return {
-        id: action.id,
-        type: action.type,
-        initiator: { id: action.initiatorId, name: initiator.name },
-        status: action.status,
-        approvals: action.approvals.length,
-        approvalsNeeded: 3,
-        approvalsRemaining: 3 - action.approvals.length,
-        approvedBy: action.approvals.map(id => {
-          const a = getAdminById(id);
-          return { id, name: a.name };
-        }),
-        pendingApprovals: pendingAdmins,
-        createdAt: action.createdAt,
-        payload: action.payload
-      };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  res.json({
-    totalPending: pendingList.length,
-    actions: pendingList
-  });
-};
-
-// Get actions pending THIS admin's approval
-exports.getActionsPendingMyApproval = (req, res) => {
-  const { adminId } = req.params;
-
-  const admin = getAdminById(adminId);
-  if (!admin) {
-    return res.status(403).json({ error: 'Admin not found' });
-  }
-
-  const pendingForThisAdmin = Array.from(pendingActions.values())
-    .filter(
-      a => a.status === 'pending' && !a.approvals.includes(adminId)
-    )
-    .map(action => {
-      const initiator = getAdminById(action.initiatorId);
-      const otherAdmins = admins
-        .filter(a => a.id !== adminId && !action.approvals.includes(a.id))
-        .map(a => ({ id: a.id, name: a.name }));
-
-      return {
-        id: action.id,
-        type: action.type,
-        initiator: { id: action.initiatorId, name: initiator.name },
-        status: action.status,
-        approvals: action.approvals.length,
-        approvalsNeeded: 3,
-        approvalsRemaining: 3 - action.approvals.length,
-        approvedBy: action.approvals.map(id => {
-          const a = getAdminById(id);
-          return { id, name: a.name };
-        }),
-        stillNeedApprovalFrom: otherAdmins,
-        createdAt: action.createdAt,
-        payload: action.payload
-      };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  res.json({
+  const action = await adminApprovalService.createAction(
     adminId,
-    adminName: admin.name,
-    actionsPendingApproval: pendingForThisAdmin,
-    count: pendingForThisAdmin.length
-  });
-};
-
-// Get admin dashboard (full stats)
-exports.getAdminDashboard = (req, res) => {
-  const { adminId } = req.params;
-
-  const admin = getAdminById(adminId);
-  if (!admin) {
-    return res.status(403).json({ error: 'Admin not found' });
-  }
-
-  const allActions = Array.from(pendingActions.values());
-  const pendingActions_arr = allActions.filter(a => a.status === 'pending');
-  const approvedActions = allActions.filter(a => a.status === 'approved');
-  const rejectedActions = allActions.filter(a => a.status === 'rejected');
-
-  const actionsInitiatedByMe = allActions.filter(a => a.initiatorId === adminId);
-  const actionsApprovedByMe = allActions.filter(a => a.approvals.includes(adminId));
-  const actionsPendingMyApproval = pendingActions_arr.filter(
-    a => !a.approvals.includes(adminId)
+    adminName,
+    actionType,
+    description,
+    payload,
+    targetEntity
   );
 
-  res.json({
-    adminId,
-    adminName: admin.name,
-    stats: {
-      totalActions: allActions.length,
-      pendingActions: pendingActions_arr.length,
-      approvedActions: approvedActions.length,
-      rejectedActions: rejectedActions.length,
-      actionsInitiatedByMe: actionsInitiatedByMe.length,
-      actionsApprovedByMe: actionsApprovedByMe.length,
-      actionsPendingMyApproval: actionsPendingMyApproval.length
-    },
-    myActions: {
-      initiated: actionsInitiatedByMe.map(a => ({
-        id: a.id,
-        type: a.type,
-        status: a.status,
-        approvals: a.approvals.length,
-        createdAt: a.createdAt
-      })),
-      approved: actionsApprovedByMe.map(a => ({
-        id: a.id,
-        type: a.type,
-        status: a.status,
-        initiator: getAdminById(a.initiatorId).name,
-        createdAt: a.createdAt
-      })),
-      pendingMyApproval: actionsPendingMyApproval.map(a => {
-        const initiator = getAdminById(a.initiatorId);
-        const pendingCount = 3 - a.approvals.length;
-        return {
-          id: a.id,
-          type: a.type,
-          initiator: { id: a.initiatorId, name: initiator.name },
-          approvals: a.approvals.length,
-          approvalsRemaining: pendingCount,
-          createdAt: a.createdAt
-        };
-      })
+  res.status(201).json({
+    success: true,
+    data: {
+      actionId: action._id,
+      actionType: action.actionType,
+      description: action.description,
+      status: action.status,
+      approvals: action.approvals.length,
+      approvalsNeeded: adminApprovalService.REQUIRED_APPROVALS,
+      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      message: `Action initiated. Requires approvals from ${adminApprovalService.REQUIRED_APPROVALS - 1} more admins.`,
+      createdAt: action.createdAt
     }
   });
-};
+});
+
+/**
+ * @desc    Approve a pending action
+ * @route   POST /api/v1/admin/actions/:actionId/approve
+ * @access  Private/Admin
+ */
+exports.approveAction = asyncHandler(async (req, res) => {
+  const { actionId } = req.params;
+  const adminId = req.user._id;
+  const adminName = req.user.name;
+
+  const action = await adminApprovalService.approveAction(actionId, adminId, adminName);
+
+  // Check if action is now fully approved
+  const isFullyApproved = action.approvals.length >= adminApprovalService.REQUIRED_APPROVALS;
+
+  // If fully approved, execute the action
+  if (isFullyApproved && action.status === 'approved') {
+    try {
+      await adminApprovalService.executeAction(actionId);
+
+      const updatedAction = await adminApprovalService.getActionById(actionId);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          actionId: updatedAction._id,
+          actionType: updatedAction.actionType,
+          status: updatedAction.status,
+          approvals: updatedAction.approvals.length,
+          approvalsNeeded: adminApprovalService.REQUIRED_APPROVALS,
+          message: `Action fully approved and executed successfully!`,
+          executionResult: updatedAction.executionResult
+        }
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Action approved but execution failed',
+        error: error.message
+      });
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      actionId: action._id,
+      actionType: action.actionType,
+      status: action.status,
+      approvals: action.approvals.length,
+      approvalsNeeded: adminApprovalService.REQUIRED_APPROVALS,
+      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      message: `Approved by ${adminName}. Requires ${adminApprovalService.REQUIRED_APPROVALS - action.approvals.length} more approvals.`,
+      approvedBy: action.approvals.map(a => ({
+        id: a.adminId,
+        name: a.adminName,
+        approvedAt: a.approvedAt
+      }))
+    }
+  });
+});
+
+/**
+ * @desc    Reject a pending action
+ * @route   POST /api/v1/admin/actions/:actionId/reject
+ * @access  Private/Admin
+ */
+exports.rejectAction = asyncHandler(async (req, res) => {
+  const { actionId } = req.params;
+  const { reason } = req.body;
+  const adminId = req.user._id;
+  const adminName = req.user.name;
+
+  const action = await adminApprovalService.rejectAction(
+    actionId,
+    adminId,
+    adminName,
+    reason || 'No reason provided'
+  );
+
+  res.status(200).json({
+    success: true,
+    data: {
+      actionId: action._id,
+      actionType: action.actionType,
+      status: action.status,
+      message: `Action rejected by ${adminName}`,
+      rejectedBy: {
+        id: adminId,
+        name: adminName,
+        reason: reason || 'No reason provided'
+      },
+      rejectionCount: action.rejections.length
+    }
+  });
+});
+
+/**
+ * @desc    Get all pending actions for current admin
+ * @route   GET /api/v1/admin/actions/pending
+ * @access  Private/Admin
+ */
+exports.getPendingActions = asyncHandler(async (req, res) => {
+  const adminId = req.user._id;
+
+  const pendingActions = await adminApprovalService.getPendingForAdmin(adminId);
+
+  res.status(200).json({
+    success: true,
+    count: pendingActions.length,
+    data: pendingActions.map(action => ({
+      actionId: action._id,
+      actionType: action.actionType,
+      description: action.description,
+      initiator: {
+        id: action.initiatedBy._id,
+        name: action.initiatedBy.name
+      },
+      status: action.status,
+      approvals: action.approvals.length,
+      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      approvedBy: action.approvals.map(a => a.adminName),
+      createdAt: action.createdAt,
+      expiresAt: action.expiresAt
+    }))
+  });
+});
+
+/**
+ * @desc    Get action details by ID
+ * @route   GET /api/v1/admin/actions/:actionId
+ * @access  Private/Admin
+ */
+exports.getActionById = asyncHandler(async (req, res) => {
+  const { actionId } = req.params;
+
+  const action = await adminApprovalService.getActionById(actionId);
+
+  if (!action) {
+    res.status(404);
+    throw new Error('Action not found');
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      actionId: action._id,
+      actionType: action.actionType,
+      description: action.description,
+      status: action.status,
+      initiator: {
+        id: action.initiatedBy._id,
+        name: action.initiatedBy.name
+      },
+      approvals: action.approvals.map(a => ({
+        id: a.adminId._id,
+        name: a.adminId.name,
+        approvedAt: a.approvedAt
+      })),
+      rejections: action.rejections.map(r => ({
+        id: r.adminId._id,
+        name: r.adminId.name,
+        reason: r.reason,
+        rejectedAt: r.rejectedAt
+      })),
+      approvalsCount: action.approvals.length,
+      approvalsNeeded: adminApprovalService.REQUIRED_APPROVALS,
+      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      payload: action.payload,
+      executionResult: action.executionResult,
+      auditLog: action.auditLog,
+      createdAt: action.createdAt,
+      expiresAt: action.expiresAt,
+      isExpired: action.isExpired()
+    }
+  });
+});
+
+/**
+ * @desc    Get all pending actions (admin dashboard)
+ * @route   GET /api/v1/admin/actions
+ * @access  Private/Admin
+ */
+exports.getAllPendingActions = asyncHandler(async (req, res) => {
+  const allPending = await adminApprovalService.getAllPending();
+
+  res.status(200).json({
+    success: true,
+    totalPending: allPending.length,
+    data: allPending.map(action => ({
+      actionId: action._id,
+      actionType: action.actionType,
+      description: action.description,
+      initiator: {
+        id: action.initiatedBy._id,
+        name: action.initiatedBy.name
+      },
+      status: action.status,
+      approvals: action.approvals.length,
+      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      approvedBy: action.approvals.map(a => a.adminName),
+      createdAt: action.createdAt,
+      expiresAt: action.expiresAt
+    }))
+  });
+});
+
+/**
+ * @desc    Get actions initiated by current admin
+ * @route   GET /api/v1/admin/actions/initiated
+ * @access  Private/Admin
+ */
+exports.getMyInitiatedActions = asyncHandler(async (req, res) => {
+  const adminId = req.user._id;
+
+  const actions = await adminApprovalService.getActionsByInitiator(adminId);
+
+  res.status(200).json({
+    success: true,
+    count: actions.length,
+    data: actions.map(action => ({
+      actionId: action._id,
+      actionType: action.actionType,
+      description: action.description,
+      status: action.status,
+      approvals: action.approvals.length,
+      approvalsNeeded: adminApprovalService.REQUIRED_APPROVALS,
+      createdAt: action.createdAt
+    }))
+  });
+});
+
+/**
+ * @desc    Cancel a pending action (only initiator can cancel)
+ * @route   DELETE /api/v1/admin/actions/:actionId
+ * @access  Private/Admin
+ */
+exports.cancelAction = asyncHandler(async (req, res) => {
+  const { actionId } = req.params;
+  const { reason } = req.body;
+  const adminId = req.user._id;
+  const adminName = req.user.name;
+
+  const action = await adminApprovalService.cancelAction(
+    actionId,
+    adminId,
+    adminName,
+    reason || 'Cancelled by initiator'
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Action cancelled successfully',
+    data: {
+      actionId: action._id,
+      status: action.status
+    }
+  });
+});
+
+/**
+ * @desc    Get action summary/stats
+ * @route   GET /api/v1/admin/actions/stats
+ * @access  Private/Admin
+ */
+exports.getActionStats = asyncHandler(async (req, res) => {
+  const allActions = await AdminAction.find();
+  const pendingActions = await AdminAction.find({ status: 'pending' });
+  const approvedActions = await AdminAction.find({ status: 'approved' });
+  const executedActions = await AdminAction.find({ status: 'executed' });
+  const rejectedActions = await AdminAction.find({ status: 'rejected' });
+
+  // Stats by action type
+  const statsByType = {};
+  allActions.forEach(action => {
+    if (!statsByType[action.actionType]) {
+      statsByType[action.actionType] = {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        executed: 0,
+        rejected: 0
+      };
+    }
+    statsByType[action.actionType].total++;
+    statsByType[action.actionType][action.status]++;
+  });
+
+  res.status(200).json({
+    success: true,
+    stats: {
+      total: allActions.length,
+      pending: pendingActions.length,
+      approved: approvedActions.length,
+      executed: executedActions.length,
+      rejected: rejectedActions.length,
+      byActionType: statsByType
+    }
+  });
+});
+
+/**
+ * @desc    Notify admin of pending approvals
+ * @route   GET /api/v1/admin/actions/pending-count
+ * @access  Private/Admin
+ */
+exports.getPendingApprovalCount = asyncHandler(async (req, res) => {
+  const adminId = req.user._id;
+
+  const count = await AdminAction.countDocuments({
+    status: 'pending',
+    'approvals.adminId': { $ne: adminId },
+    expiresAt: { $gt: new Date() }
+  });
+
+  res.status(200).json({
+    success: true,
+    pendingCount: count,
+    message: count > 0
+      ? `You have ${count} pending action${count !== 1 ? 's' : ''} to approve`
+      : 'No pending actions to approve'
+  });
+});
+
+/**
+ * @desc    Get dashboard summary for admin
+ * @route   GET /api/v1/admin/actions/dashboard
+ * @access  Private/Admin
+ */
+exports.getActionDashboard = asyncHandler(async (req, res) => {
+  const adminId = req.user._id;
+
+  const [
+    pendingForMe,
+    myInitiated,
+    myApprovals,
+    allPending,
+    stats
+  ] = await Promise.all([
+    AdminAction.find({
+      status: 'pending',
+      'approvals.adminId': { $ne: adminId },
+      expiresAt: { $gt: new Date() }
+    }).select('_id actionType description initiatedBy createdAt'),
+
+    AdminAction.find({ initiatedBy: adminId }).select('_id actionType status createdAt'),
+
+    AdminAction.find({ 'approvals.adminId': adminId }).select('_id actionType status'),
+
+    AdminAction.find({ status: 'pending', expiresAt: { $gt: new Date() } }).select('_id'),
+
+    AdminAction.find({}).select('status')
+  ]);
+
+  const statusCounts = {};
+  stats.forEach(action => {
+    statusCounts[action.status] = (statusCounts[action.status] || 0) + 1;
+  });
+
+  res.status(200).json({
+    success: true,
+    dashboard: {
+      pendingForMyApproval: pendingForMe.length,
+      actionsInitiatedByMe: myInitiated.length,
+      actionsApprovedByMe: myApprovals.length,
+      totalPendingInSystem: allPending.length,
+      recentPendingActions: pendingForMe.slice(0, 5).map(a => ({
+        id: a._id,
+        type: a.actionType,
+        description: a.description,
+        initiator: a.initiatedBy.name,
+        createdAt: a.createdAt
+      })),
+      stats: {
+        ...statusCounts,
+        total: stats.length
+      }
+    }
+  });
+});
