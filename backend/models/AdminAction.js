@@ -36,8 +36,7 @@ const adminActionSchema = mongoose.Schema(
     },
 
     initiatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: [true, 'Initiator admin is required'],
     },
 
@@ -49,8 +48,7 @@ const adminActionSchema = mongoose.Schema(
     approvals: [
       {
         adminId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'User',
+          type: String,
           required: true,
         },
         adminName: String,
@@ -64,8 +62,7 @@ const adminActionSchema = mongoose.Schema(
     rejections: [
       {
         adminId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'User',
+          type: String,
           required: true,
         },
         adminName: String,
