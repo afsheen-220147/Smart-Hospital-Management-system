@@ -129,6 +129,20 @@ exports.registerVerifyOtp = asyncHandler(async (req, res) => {
 
   if (user) {
     await createProfileRecord(user, department);
+    
+    // ✅ FIX: Auto-approve doctor if they're in AdminDoctor list
+    if (user.role === 'doctor') {
+      const adminDoc = await AdminDoctor.findOne({ email: user.email });
+      if (adminDoc) {
+        const doctor = await Doctor.findOne({ user: user._id });
+        if (doctor) {
+          doctor.isApproved = true;
+          doctor.approvalDate = new Date();
+          await doctor.save();
+        }
+      }
+    }
+    
     registrationOtps.delete(email.toLowerCase());
 
     res.status(201).json({
@@ -174,6 +188,19 @@ exports.register = asyncHandler(async (req, res) => {
     if (adminDoc) department = adminDoc.department;
   }
   await createProfileRecord(user, department);
+  
+  // ✅ FIX: Auto-approve doctor if they're in AdminDoctor list
+  if (user.role === 'doctor') {
+    const adminDoc = await AdminDoctor.findOne({ email: user.email });
+    if (adminDoc) {
+      const doctor = await Doctor.findOne({ user: user._id });
+      if (doctor) {
+        doctor.isApproved = true;
+        doctor.approvalDate = new Date();
+        await doctor.save();
+      }
+    }
+  }
 
   res.status(201).json({
     success: true, _id: user._id, name: user.name, email: user.email,
@@ -189,7 +216,30 @@ exports.login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email }).select('+password');
   if (!user) { res.status(401); throw new Error('Invalid email or password'); }
   if (!user.password) { res.status(401); throw new Error('This account was created with Google. Please use "Sign in with Google" button.'); }
+  
   if (await user.matchPassword(password)) {
+    // ✅ FIX: Doctor approval check - cannot login if not approved by admin
+    if (user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ user: user._id });
+      if (!doctor) {
+        res.status(403);
+        throw new Error('Doctor profile not found. Please complete your registration.');
+      }
+      if (!doctor.isApproved) {
+        res.status(403);
+        throw new Error('Your account is pending admin approval. You will receive an email once approved.');
+      }
+    }
+    
+    // ✅ FIX: Ensure patient has profile
+    if (user.role === 'patient') {
+      const patient = await Patient.findOne({ user: user._id });
+      if (!patient) {
+        res.status(403);
+        throw new Error('Patient profile not found. Please complete your registration.');
+      }
+    }
+    
     res.json({ success: true, _id: user._id, name: user.name, email: user.email, role: user.role, token: generateToken(user._id) });
   } else { res.status(401); throw new Error('Invalid email or password'); }
 });
@@ -266,11 +316,31 @@ exports.googleAuthLogin = async (req, res) => {
     if (!user) {
       user = await User.findOne({ email });
       if (user) {
+        // ✅ FIX: Doctor approval check when linking Google to existing account
+        if (user.role === 'doctor') {
+          const doctor = await Doctor.findOne({ user: user._id });
+          if (!doctor || !doctor.isApproved) {
+            return res.status(403).json({ 
+              success: false, 
+              message: 'Doctor account is pending approval. You cannot login with Google until approved by an admin.' 
+            });
+          }
+        }
+        
         // Link Google account to existing user
         user.googleId = googleId;
         if (!user.authProvider.includes('google')) user.authProvider.push('google');
         await user.save();
       } else {
+        // ✅ FIX: Only auto-create PATIENT accounts via Google, NOT doctor
+        // Doctor must register via email OTP flow
+        if (email.toLowerCase().endsWith('@rguktn.ac.in')) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'Doctor registration requires email verification. Please sign up with your email and password.' 
+          });
+        }
+        
         // Auto-create new user as patient (no password required for Google-only accounts)
         user = await User.create({
           name,
@@ -281,6 +351,17 @@ exports.googleAuthLogin = async (req, res) => {
         });
         // Create patient profile
         await Patient.create({ user: user._id, gender: 'Not Specified', bloodGroup: 'Unknown' });
+      }
+    } else {
+      // ✅ FIX: Doctor approval check on login
+      if (user.role === 'doctor') {
+        const doctor = await Doctor.findOne({ user: user._id });
+        if (!doctor || !doctor.isApproved) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'Your doctor account is pending admin approval. You will receive an email once approved.' 
+          });
+        }
       }
     }
 
@@ -356,6 +437,19 @@ exports.googleRegister = async (req, res) => {
       role: role || 'patient', authProvider: ['google', 'local'],
     });
     await createProfileRecord(user, department);
+
+    // ✅ FIX: Auto-approve doctor if they're in AdminDoctor list
+    if (user.role === 'doctor') {
+      const adminDoc = await AdminDoctor.findOne({ email: user.email });
+      if (adminDoc) {
+        const doctor = await Doctor.findOne({ user: user._id });
+        if (doctor) {
+          doctor.isApproved = true;
+          doctor.approvalDate = new Date();
+          await doctor.save();
+        }
+      }
+    }
 
     res.status(201).json({ success: true, message: 'Registration successful! Please login with your email and password.' });
   } catch (err) {

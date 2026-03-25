@@ -99,6 +99,22 @@ const doctorSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // DOCTOR APPROVAL STATUS - Critical for registration flow
+  isApproved: {
+    type: Boolean,
+    default: false,
+    description: 'Admin must approve doctor before they can access dashboard'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    description: 'Which admin approved this doctor'
+  },
+  approvalDate: {
+    type: Date,
+    default: null
+  },
   availabilityStatus: {
     type: String,
     enum: ['on-duty', 'off-duty', 'available', 'busy', 'on-leave'],
