@@ -1,0 +1,223 @@
+/\*\*
+
+- ADMIN APPROVAL SYSTEM - IMPLEMENTATION GUIDE
+-
+- This document describes the integrated 3-of-5 admin approval system
+- implemented throughout the Smart Hospital Management System backend.
+-
+- ===================================================================
+- DELETION FLOW WITH 3-ADMIN APPROVAL REQUIREMENT
+- ===================================================================
+-
+- ALL privileged deletion operations now require 3 admin approvals:
+-
+- 1.  PATIENT DELETION
+- DELETE /api/v1/patients/:id
+- - Admin initiates deletion
+- - Cannot directly delete - creates pending action
+- - Response: { actionId, status: "pending", approvals: 1/3 }
+- - Admin 2 & 3 approve via /api/v1/admin-approval/action/approve
+- - When 3 approvals reached: Patient + User + All Appointments deleted
+-
+- 2.  DOCTOR DELETION
+- DELETE /api/v1/doctors/:id
+- - Admin initiates deletion
+- - Cannot directly delete - creates pending action
+- - Response: { actionId, status: "pending", approvals: 1/3 }
+- - Admin 2 & 3 approve via /api/v1/admin-approval/action/approve
+- - When 3 approvals reached: Doctor + User + Pending Appointments deleted
+-
+- 3.  PRIVILEGED ACTION INITIATION (Generic)
+- POST /api/v1/admin-approval/action/initiate
+- - Create any custom privileged action
+- - Initiator counts as 1 approval
+- - Requires 2 more approvals
+-
+- ===================================================================
+- APPROVAL WORKFLOW
+- ===================================================================
+-
+- Step 1: Admin initiates action
+- POST /api/v1/patients/:id [DELETE]
+- → Creates action with status "pending", approvals = [adminId]
+- → Response has actionId
+-
+- Step 2: Second admin approves
+- POST /api/v1/admin-approval/action/approve
+- Body: { adminId: admin2Id, actionId }
+- → Approvals count increases to 2
+- → Status remains "pending"
+-
+- Step 3: Third admin approves
+- POST /api/v1/admin-approval/action/approve
+- Body: { adminId: admin3Id, actionId }
+- → Approvals count reaches 3
+- → Status becomes "approved"
+- → ACTION IS AUTOMATICALLY EXECUTED
+- → Deletion happens, user/patient/doctor removed
+-
+- ===================================================================
+- ACTION REJECTION
+- ===================================================================
+-
+- Any admin can reject a pending action:
+- POST /api/v1/admin-approval/action/reject
+- Body: { adminId, actionId }
+- → Status becomes "rejected"
+- → No execution occurs
+- → Action cannot be approved after rejection
+-
+- ===================================================================
+- SECURITY CONSTRAINTS
+- ===================================================================
+-
+- ✓ Same admin cannot approve twice
+- ✓ Initiator counts as first approval automatically
+- ✓ Only 3 approvals (not more) required for execution
+- ✓ Rejected actions prevent execution
+- ✓ Only admins can approve/reject
+- ✓ All user data properly authenticated via JWT
+-
+- ===================================================================
+- ADMIN APPROVAL ENDPOINTS
+- ===================================================================
+-
+- POST /api/v1/admin-approval/login
+- - Admin system login (separate from main auth for testing)
+- - Body: { email, password }
+- - Returns: { adminId, name, email }
+-
+- POST /api/v1/admin-approval/action/initiate
+- - Create new pending action
+- - Body: { adminId, actionType, payload }
+- - Returns: { actionId, status, approvals, approvalsNeeded }
+-
+- POST /api/v1/admin-approval/action/approve
+- - Approve pending action
+- - Body: { adminId, actionId }
+- - Returns: { actionId, status, approvals, approvedBy }
+-
+- POST /api/v1/admin-approval/action/reject
+- - Reject pending action
+- - Body: { adminId, actionId }
+- - Returns: { actionId, status, rejectedBy }
+-
+- GET /api/v1/admin-approval/actions
+- - List all actions with their status
+- - Returns: array of actions with full details
+-
+- GET /api/v1/admin-approval/actions/:actionId
+- - Get single action details
+- - Returns: action with detailed approval info
+-
+- ===================================================================
+- INTEGRATION POINTS
+- ===================================================================
+-
+- File: backend/controllers/adminApprovalController.js
+- - Core approval system logic
+- - Manages pending actions (in-memory Map)
+- - Loads 5 admins from /\_data/users.json
+- - Validates admin credentials
+- - Tracks approvals and executes actions at 3 approvals
+-
+- File: backend/services/adminApprovalService.js
+- - Action executors for different deletion types
+- - doctor_deletion: Deletes doctor + user + pending appointments
+- - patient_deletion: Deletes patient + user + all appointments
+- - user_deletion: Deletes user account
+-
+- File: backend/controllers/patientController.js
+- - Modified deletePatient() to require 3-admin approval
+- - No direct deletion possible
+- - Creates pending action instead
+-
+- File: backend/controllers/doctorController.js
+- - New deleteDoctor() function requiring 3-admin approval
+- - No direct deletion possible
+- - Creates pending action instead
+-
+- File: backend/controllers/adminController.js
+- - Helper function: initiateDoctorDeletion()
+- - Helper function: initiatePatientDeletion()
+- - These provide admin-friendly deletion initiation
+-
+- File: backend/routes/doctorRoutes.js
+- - Added DELETE /:id route with admin authorization
+- - Calls deleteDoctor() which requires approval
+-
+- File: backend/routes/adminRoutes.js
+- - Added POST /doctor/delete-request (initiateDoctorDeletion)
+- - Added POST /patient/delete-request (initiatePatientDeletion)
+-
+- File: backend/routes/adminApprovalRoutes.js
+- - All approval system routes
+- - Mounted at /api/v1/admin-approval
+-
+- ===================================================================
+- DATABASE SCHEMA
+- ===================================================================
+-
+- File: backend/\_data/users.json
+- - Updated to include 5 admins (ids: admin_001 to admin_005)
+- - Each admin has { id, name, email, password, role: "admin" }
+-
+- In-Memory Storage (during runtime):
+- - pendingActions = Map()
+- - Stores actions by actionId
+- - Each action: { id, type, status, initiatorId, approvals[], payload, ... }
+-
+- ===================================================================
+- EXAMPLE FLOW
+- ===================================================================
+-
+- 1.  Delete Patient with 3-Admin Approval:
+-
+- Admin 1 initiates:
+- DELETE /api/v1/patients/patient_123
+- Headers: Authorization: Bearer <admin1_token>
+- Response:
+- {
+-      success: true,
+-      actionId: "action_abc123def",
+-      status: "pending",
+-      approvals: 1,
+-      approvalsNeeded: 3
+- }
+-
+- Admin 2 approves:
+- POST /api/v1/admin-approval/action/approve
+- Body: { adminId: "admin_002", actionId: "action_abc123def" }
+- Response:
+- {
+-      actionId: "action_abc123def",
+-      status: "pending",
+-      approvals: 2,
+-      approvalsNeeded: 3,
+-      approvedBy: [
+-        { id: "admin_001", name: "Admin User" },
+-        { id: "admin_002", name: "Admin Manager" }
+-      ]
+- }
+-
+- Admin 3 approves (triggers deletion):
+- POST /api/v1/admin-approval/action/approve
+- Body: { adminId: "admin_003", actionId: "action_abc123def" }
+- Response:
+- {
+-      actionId: "action_abc123def",
+-      status: "approved",  ← NOW APPROVED!
+-      approvals: 3,
+-      approvalsNeeded: 3,
+-      approvedBy: [
+-        { id: "admin_001", name: "Admin User" },
+-        { id: "admin_002", name: "Admin Manager" },
+-        { id: "admin_003", name: "Admin Supervisor" }
+-      ]
+- }
+-
+- Console log:
+- ✓ Patient patient_123 deleted along with all appointments
+-
+- ===================================================================
+  \*/

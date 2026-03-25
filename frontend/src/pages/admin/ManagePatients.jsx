@@ -29,12 +29,25 @@ export default function ManagePatients() {
   const handleDelete = async (id) => {
     setDeleteLoading(true)
     try {
-      await api.delete(`/patients/${id}`)
-      setPatients(prev => prev.filter(p => p._id !== id))
+      // Get admin ID from localStorage (set during admin login)
+      const adminId = localStorage.getItem('adminId') || 'admin_001'
+      
+      // Delete now returns actionId and requires 3 approvals
+      const response = await api.delete(`/patients/${id}`, {
+        data: {
+          adminId: adminId,
+          reason: 'Admin requested patient removal'
+        }
+      })
+      
+      // Show approval pending message instead of immediate removal
+      showSuccess(`Deletion initiated. Action ID: ${response.data.actionId}. Requires 3 admin approvals.`)
       setDeleteId(null)
-      showSuccess('Patient removed successfully.')
+      
+      // Refresh to show latest state
+      setTimeout(() => fetchPatients(), 1000)
     } catch (err) {
-      showError(getErrorMessage(err, 'Failed to remove patient'))
+      showError(getErrorMessage(err, 'Failed to initiate patient removal'))
     } finally {
       setDeleteLoading(false)
     }

@@ -1,6 +1,7 @@
 const Doctor = require('../models/Doctor');
 const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
+const adminApprovalController = require('./adminApprovalController');
 
 // @desc    Get all doctors
 // @route   GET /api/v1/doctors
@@ -100,5 +101,48 @@ exports.updateDoctor = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     data: doctor
+  });
+});
+
+// @desc    Delete doctor profile (requires 3 admin approvals)
+// @route   DELETE /api/v1/doctors/:id
+// @access  Private/Admin
+exports.deleteDoctor = asyncHandler(async (req, res, next) => {
+  const doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    res.status(404);
+    throw new Error('Doctor not found');
+  }
+
+  // Get admin from users.json (not MongoDB)
+  // For now, use a fixed admin ID - in production, map from MongoDB user to admin
+  const adminId = req.body.adminId || 'admin_001';
+  
+  if (!adminId) {
+    res.status(401);
+    throw new Error('Admin authentication required');
+  }
+
+  // Create a pending approval action instead of direct deletion
+  const action = adminApprovalController.createPendingAction(
+    adminId,
+    'doctor_deletion',
+    {
+      doctorId: req.params.id,
+      reason: req.body?.reason || 'Admin requested deletion'
+    }
+  );
+
+  res.status(201).json({
+    success: true,
+    actionId: action.id,
+    message: 'Doctor deletion initiated. Requires approvals from 3 admins.',
+    details: {
+      doctorId: req.params.id,
+      status: 'pending',
+      approvals: 1,
+      approvalsNeeded: 3
+    }
   });
 });

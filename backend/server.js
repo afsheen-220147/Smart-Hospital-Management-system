@@ -24,6 +24,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const consentRoutes = require('./routes/consentRoutes');
+const adminApprovalRoutes = require('./routes/adminApprovalRoutes');
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use('/api/v1/scheduling', schedulingRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/admin-approval', adminApprovalRoutes);
 app.use('/api/v1/consent', consentRoutes);
 
 // Health check endpoint

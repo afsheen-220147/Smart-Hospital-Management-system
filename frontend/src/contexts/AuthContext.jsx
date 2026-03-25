@@ -105,6 +105,7 @@ export function AuthProvider({ children }) {
     authService.logout()
     setUser(null)
     localStorage.removeItem('sh_user')
+    localStorage.removeItem('adminId')
   }
 
   // Show loading spinner while validating

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAdminStats } = require('../controllers/adminController');
+const { getAdminStats, initiateDoctorDeletion, initiatePatientDeletion } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { 
@@ -19,6 +19,12 @@ router.use(protect);
 router.use(authorize('admin'));
 
 router.get('/stats', getAdminStats);
+
+// Doctor deletion with 3-admin approval
+router.post('/doctor/delete-request', initiateDoctorDeletion);
+
+// Patient deletion with 3-admin approval
+router.post('/patient/delete-request', initiatePatientDeletion);
 
 // Appointment auto-update endpoints
 router.post('/appointments/trigger-update', triggerAppointmentUpdate);
