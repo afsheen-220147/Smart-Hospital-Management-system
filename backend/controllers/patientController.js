@@ -90,13 +90,6 @@ exports.getMyProfile = asyncHandler(async (req, res, next) => {
 // @route   DELETE /api/v1/patients/:id
 // @access  Private/Admin
 exports.deletePatient = asyncHandler(async (req, res, next) => {
-  const patient = await Patient.findById(req.params.id);
-
-  if (!patient) {
-    res.status(404);
-    throw new Error('Patient not found');
-  }
-
   // Get admin from users.json (not MongoDB)
   // For now, use a fixed admin ID - in production, map from MongoDB user to admin
   const adminId = req.body.adminId || 'admin_001';
@@ -107,18 +100,32 @@ exports.deletePatient = asyncHandler(async (req, res, next) => {
   }
 
   // Create a pending approval action instead of direct deletion
-  const action = adminApprovalController.createPendingAction(
+  const adminApprovalService = require('../services/adminApprovalService');
+  const patient = await Patient.findById(req.params.id).populate('user', 'name');
+
+  if (!patient) {
+    res.status(404);
+    throw new Error('Patient not found');
+  }
+  const action = await adminApprovalService.createAction(
     adminId,
-    'patient_deletion',
+    req.user.name,
+    'patient_delete',
+    `Delete patient: ${patient?.user?.name || req.params.id}`,
     {
       patientId: req.params.id,
       reason: req.body?.reason || 'Admin requested deletion'
+    },
+    {
+      type: 'patient',
+      entityId: req.params.id,
+      entityName: patient?.user?.name || 'Unknown Patient'
     }
   );
 
   res.status(201).json({
     success: true,
-    actionId: action.id,
+    actionId: action._id,
     message: 'Patient deletion initiated. Requires approvals from 3 admins.',
     details: {
       patientId: req.params.id,

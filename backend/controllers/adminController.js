@@ -157,18 +157,26 @@ exports.initiateDoctorDeletion = asyncHandler(async (req, res) => {
     throw new Error('Doctor not found');
   }
 
-  const action = adminApprovalController.createPendingAction(
+  const adminApprovalService = require('../services/adminApprovalService');
+  const action = await adminApprovalService.createAction(
     adminId,
-    'doctor_deletion',
+    req.user.name,
+    'doctor_delete',
+    `Delete doctor: ${doctor.user?.name || doctorId}`,
     { 
       doctorId,
       reason: reason || 'No reason provided'
+    },
+    {
+      type: 'doctor',
+      entityId: doctorId,
+      entityName: doctor.user?.name || 'Unknown Doctor'
     }
   );
 
   res.status(201).json({
     success: true,
-    actionId: action.id,
+    actionId: action._id,
     doctorId,
     status: 'pending',
     approvals: 1,
@@ -194,18 +202,26 @@ exports.initiatePatientDeletion = asyncHandler(async (req, res) => {
     throw new Error('Patient not found');
   }
 
-  const action = adminApprovalController.createPendingAction(
+  const adminApprovalService = require('../services/adminApprovalService');
+  const action = await adminApprovalService.createAction(
     adminId,
-    'patient_deletion',
+    req.user.name,
+    'patient_delete',
+    `Delete patient: ${patient.user?.name || patientId}`,
     { 
       patientId,
       reason: reason || 'No reason provided'
+    },
+    {
+      type: 'patient',
+      entityId: patientId,
+      entityName: patient.user?.name || 'Unknown Patient'
     }
   );
 
   res.status(201).json({
     success: true,
-    actionId: action.id,
+    actionId: action._id,
     patientId,
     status: 'pending',
     approvals: 1,
