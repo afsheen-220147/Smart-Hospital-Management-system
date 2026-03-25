@@ -3,6 +3,15 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
 const protect = asyncHandler(async (req, res, next) => {
+  // Check if user is deleted
+  const User = require('../models/User');
+  if (req.user) {
+    const user = await User.findById(req.user._id).select('+isDeleted');
+    if (user && user.isDeleted) {
+      res.status(403);
+      throw new Error('Your account has been deleted. Please contact admin@hospital.com for assistance.');
+    }
+  }
   let token;
 
   if (

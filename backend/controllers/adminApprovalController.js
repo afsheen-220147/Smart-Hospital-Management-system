@@ -244,7 +244,15 @@ exports.getActionById = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 exports.getAllPendingActions = asyncHandler(async (req, res) => {
-  const allPending = await adminApprovalService.getAllPending();
+  const { actionType, status } = req.query;
+  
+  let filter = {};
+  if (actionType) filter.actionType = actionType;
+  if (status) filter.status = status;
+
+  const allPending = await AdminAction.find(filter)
+    .populate('initiatedBy', 'name email')
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
@@ -259,8 +267,10 @@ exports.getAllPendingActions = asyncHandler(async (req, res) => {
       },
       status: action.status,
       approvals: action.approvals.length,
-      approvalsRemaining: adminApprovalService.REQUIRED_APPROVALS - action.approvals.length,
+      approvalsNeeded: 3,
+      approvalsRemaining: 3 - action.approvals.length,
       approvedBy: action.approvals.map(a => a.adminName),
+      payload: action.payload,
       createdAt: action.createdAt,
       expiresAt: action.expiresAt
     }))
