@@ -6,7 +6,7 @@ const reportParser = require('../utils/reportParser');
 
 const analyzeSymptoms = async (req, res) => {
   try {
-    const { symptoms, patientHistory } = req.body;
+    const { symptoms, patientHistory, language } = req.body;
 
     if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
       return res.status(400).json({
@@ -27,7 +27,7 @@ const analyzeSymptoms = async (req, res) => {
       });
     }
 
-    const analysis = await aiService.analyzeSymptoms(symptoms, patientHistory || {});
+    const analysis = await aiService.analyzeSymptoms(symptoms, patientHistory || {}, language || 'English');
 
     res.status(200).json({
       success: true,

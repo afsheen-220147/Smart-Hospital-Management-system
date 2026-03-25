@@ -2,10 +2,11 @@ import api from './api';
 
 const AI_BASE = '/ai';
 
-export const analyzeSymptoms = async (symptoms, patientHistory = {}) => {
+export const analyzeSymptoms = async (symptoms, patientHistory = {}, language = 'English') => {
   const response = await api.post(`${AI_BASE}/symptoms/analyze`, {
     symptoms,
-    patientHistory
+    patientHistory,
+    language
   });
   return response.data;
 };

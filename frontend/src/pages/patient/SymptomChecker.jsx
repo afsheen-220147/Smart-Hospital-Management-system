@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Bot, Search, AlertCircle, ArrowRight, ShieldCheck, Activity, Stethoscope, AlertTriangle } from 'lucide-react'
+import { Bot, Search, AlertCircle, ArrowRight, ShieldCheck, Activity, Stethoscope, AlertTriangle, Globe } from 'lucide-react'
 import { showWarning, showError } from '../../utils/toast'
 import { analyzeSymptoms, detectEmergency } from '../../services/ai'
 import { useNavigate } from 'react-router-dom'
@@ -19,22 +19,28 @@ const symptomsData = [
 
 export default function SymptomChecker() {
   const [selected, setSelected] = useState([])
+  const [customInput, setCustomInput] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [language, setLanguage] = useState('English')
   const navigate = useNavigate()
 
   const toggle = (id) => {
     setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
   }
 
-  const analyze = async () => {
-    if (selected.length === 0) return showWarning("Please select at least one symptom")
+  const analyze = async (overrideLang) => {
+    const currentLang = typeof overrideLang === 'string' ? overrideLang : language;
+    if (selected.length === 0 && !customInput.trim()) return showWarning("Please select or enter at least one symptom")
     
     setLoading(true)
     try {
       const symptoms = selected.map(id => symptomsData.find(s => s.id === id)?.label).filter(Boolean)
+      if (customInput.trim()) {
+        symptoms.push(customInput.trim())
+      }
       
-      const response = await analyzeSymptoms(symptoms)
+      const response = await analyzeSymptoms(symptoms, {}, currentLang)
       
       if (response.success) {
         const data = response.data
@@ -68,6 +74,13 @@ export default function SymptomChecker() {
     }
   }
 
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    if (result && !result.isEmergency) {
+      analyze(newLang);
+    }
+  }
+
   const getUrgencyColor = (urgency) => {
     if (urgency?.includes('Critical') || urgency?.includes('High')) return 'text-red-600 bg-red-50 border-red-200'
     if (urgency?.includes('Medium')) return 'text-orange-600 bg-orange-50 border-orange-200'
@@ -75,8 +88,23 @@ export default function SymptomChecker() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-10 mt-6 relative z-10">
+    <div className="max-w-4xl mx-auto pt-4">
+      <div className="flex justify-end mb-2 relative z-10 font-sans">
+        <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-1 px-2 hover:shadow-md transition-shadow">
+          <Globe size={16} className="text-indigo-500" />
+          <select 
+            value={language}
+            onChange={(e) => handleLanguageChange(e.target.value)}
+            className="bg-transparent border-none text-sm font-semibold text-gray-700 py-1.5 focus:ring-0 cursor-pointer outline-none"
+          >
+            <option value="English">English</option>
+            <option value="Hindi">हिंदी (Hindi)</option>
+            <option value="Telugu">తెలుగు (Telugu)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="text-center mb-10 relative z-10">
         <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20 rotate-3 transition-transform hover:rotate-6">
           <Bot size={40} className="text-white drop-shadow-md" />
         </div>
@@ -105,8 +133,19 @@ export default function SymptomChecker() {
             })}
           </div>
 
+          <div className="relative z-10 w-full mb-8">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Or describe your condition/symptoms in your own words:</label>
+            <textarea 
+              className="w-full border border-gray-200 rounded-xl p-4 text-gray-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none resize-y shadow-sm"
+              rows="3"
+              placeholder="E.g., I have been feeling a sharp pain in my lower back since yesterday and I feel dizzy..."
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+            ></textarea>
+          </div>
+
           <div className="relative z-10 flex flex-col items-center border-t border-gray-100 pt-8 mt-4">
-            <button onClick={analyze} disabled={selected.length === 0 || loading}
+            <button onClick={analyze} disabled={(selected.length === 0 && !customInput.trim()) || loading}
               className="btn-primary w-full md:w-auto md:px-12 py-4 text-lg font-bold shadow-xl shadow-blue-600/20 hover:shadow-2xl hover:shadow-blue-600/30 transition-all flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 group disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? (
                 <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Analyzing with AI...</>
@@ -158,7 +197,7 @@ export default function SymptomChecker() {
                   <Bot size={32} className="text-indigo-600" />
                 </div>
                 <h2 className="text-3xl font-extrabold text-gray-900 mb-2">AI Analysis Complete</h2>
-                <p className="text-gray-500 font-medium">Based on {selected.length} symptom{selected.length > 1 ? 's' : ''} reported</p>
+                <p className="text-gray-500 font-medium">Based on your reported symptoms</p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6 mb-6">
@@ -231,7 +270,7 @@ export default function SymptomChecker() {
                   className="btn-primary py-3 px-6 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 border-none">
                   Find {result.dept} <ArrowRight size={16} />
                 </button>
-                <button onClick={() => { setResult(null); setSelected([]) }} 
+                <button onClick={() => { setResult(null); setSelected([]); setCustomInput('') }} 
                   className="text-gray-500 hover:text-indigo-600 font-semibold text-sm transition-colors py-2 px-4 rounded-lg hover:bg-indigo-50">
                   Check New Symptoms
                 </button>
