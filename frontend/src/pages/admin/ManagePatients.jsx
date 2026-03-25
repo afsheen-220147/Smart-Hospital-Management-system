@@ -242,25 +242,7 @@ export default function ManagePatients() {
           )}
         </div>
       )}
-    </div>
-  )
-}
 
-  const filtered = patients.filter(p => {
-    const name  = p.user?.name  || ''
-    const email = p.user?.email || ''
-    const q = search.toLowerCase()
-    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
-  })
-
-  const calcAge = (dob) => {
-    if (!dob) return '—'
-    const diff = Date.now() - new Date(dob).getTime()
-    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
-  }
-
-  return (
-    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="section-title">Patient Profiles</h1>
