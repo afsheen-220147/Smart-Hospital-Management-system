@@ -294,6 +294,9 @@ exports.googleAuth = async (req, res) => {
 // @desc    Google OAuth login (auto-creates patient account if not exists)
 // @route   POST /api/v1/auth/google-login
 // @access  Public
+// @desc    Google OAuth login (EXISTING USERS ONLY - no auto-create)
+// Route   POST /api/v1/auth/google-login
+// @access  Public
 exports.googleAuthLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -311,60 +314,40 @@ exports.googleAuthLogin = async (req, res) => {
     const payload = ticket.getPayload();
     const { sub: googleId, email, name } = payload;
 
-    // Check if user exists by googleId or email
+    // ✅ STRICT: Check if user exists by googleId or email
     let user = await User.findOne({ googleId });
     if (!user) {
       user = await User.findOne({ email });
-      if (user) {
-        // ✅ FIX: Doctor approval check when linking Google to existing account
-        if (user.role === 'doctor') {
-          const doctor = await Doctor.findOne({ user: user._id });
-          if (!doctor || !doctor.isApproved) {
-            return res.status(403).json({ 
-              success: false, 
-              message: 'Doctor account is pending approval. You cannot login with Google until approved by an admin.' 
-            });
-          }
-        }
-        
-        // Link Google account to existing user
-        user.googleId = googleId;
-        if (!user.authProvider.includes('google')) user.authProvider.push('google');
-        await user.save();
-      } else {
-        // ✅ FIX: Only auto-create PATIENT accounts via Google, NOT doctor
-        // Doctor must register via email OTP flow
-        if (email.toLowerCase().endsWith('@rguktn.ac.in')) {
-          return res.status(403).json({ 
-            success: false, 
-            message: 'Doctor registration requires email verification. Please sign up with your email and password.' 
-          });
-        }
-        
-        // Auto-create new user as patient (no password required for Google-only accounts)
-        user = await User.create({
-          name,
-          email,
-          googleId,
-          role: 'patient',
-          authProvider: ['google'],
+    }
+
+    // ✅ FIX: NO AUTO-CREATE on login
+    // New users must use /google-register endpoint in registration flow
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No account found with this Google email. Please register first.' 
+      });
+    }
+
+    // ✅ Link Google ID if not already linked (existing user linking Google)
+    if (!user.googleId) {
+      user.googleId = googleId;
+      if (!user.authProvider.includes('google')) user.authProvider.push('google');
+      await user.save();
+    }
+
+    // ✅ FIX: Doctor approval check
+    if (user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ user: user._id });
+      if (!doctor || !doctor.isApproved) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your doctor account is pending admin approval. You will receive an email once approved.' 
         });
-        // Create patient profile
-        await Patient.create({ user: user._id, gender: 'Not Specified', bloodGroup: 'Unknown' });
-      }
-    } else {
-      // ✅ FIX: Doctor approval check on login
-      if (user.role === 'doctor') {
-        const doctor = await Doctor.findOne({ user: user._id });
-        if (!doctor || !doctor.isApproved) {
-          return res.status(403).json({ 
-            success: false, 
-            message: 'Your doctor account is pending admin approval. You will receive an email once approved.' 
-          });
-        }
       }
     }
 
+    // ✅ Login successful - return token
     res.status(200).json({
       success: true,
       _id: user._id,
