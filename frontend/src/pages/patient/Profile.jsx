@@ -15,6 +15,7 @@ export default function Profile() {
     email: '',
     phone: '',
     dob: '',
+    gender: '',
     bloodGroup: '',
     weight: '',
     height: '',
@@ -31,6 +32,7 @@ export default function Profile() {
           email: 'john@example.com',
           phone: '+91 98765 43210',
           dob: '1995-08-15',
+          gender: 'Male',
           bloodGroup: 'B+',
           weight: '72',
           height: '175',
@@ -50,6 +52,7 @@ export default function Profile() {
           email: data.user?.email || user?.email || '',
           phone: data.phone || '',
           dob: data.dateOfBirth ? data.dateOfBirth.split('T')[0] : '',
+          gender: data.gender || '',
           bloodGroup: data.bloodGroup || '',
           weight: data.weight || '',
           height: data.height || '',
@@ -79,6 +82,7 @@ export default function Profile() {
         phone: profile.phone,
         address: profile.address,
         dateOfBirth: profile.dob,
+        gender: profile.gender,
         weight: profile.weight,
         height: profile.height,
         bloodGroup: profile.bloodGroup,
@@ -183,6 +187,20 @@ export default function Profile() {
                 <input type="date" className="form-input py-2 bg-gray-50 focus:bg-white" value={profile.dob} onChange={e => setProfile({ ...profile, dob: e.target.value })} />
               ) : (
                 <p className="font-semibold text-gray-900 text-base mt-1 flex items-center gap-2"><Calendar size={16} className="text-gray-400" /> {profile.dob ? new Date(profile.dob).toLocaleDateString('en-GB') : 'Not provided'}</p>
+              )}
+            </div>
+
+            <div className={`form-group ${editing ? 'animate-fadeIn' : ''}`}>
+              <label className="form-label text-xs font-bold uppercase tracking-wider text-gray-500">Gender</label>
+              {editing ? (
+                <select className="form-input py-2 bg-gray-50 focus:bg-white cursor-pointer" value={profile.gender} onChange={e => setProfile({ ...profile, gender: e.target.value })}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              ) : (
+                <p className="font-semibold text-gray-900 text-base mt-1 flex items-center gap-2"><User size={16} className="text-gray-400" /> {profile.gender || 'Not provided'}</p>
               )}
             </div>
 

@@ -81,6 +81,14 @@ export default function Register() {
     navigate('/login', { state: { registered: true, email } })
   }
 
+  const redirectToProfileCompletion = (email, role) => {
+    if (role === 'patient') {
+      navigate('/profile-completion', { state: { email } })
+    } else {
+      redirectToLogin(email)
+    }
+  }
+
   // ── Google flow handlers ──
   const handleGoogleSuccess = async (credentialResponse) => {
     const token = credentialResponse.credential
@@ -144,8 +152,8 @@ export default function Register() {
         idToken, role: selectedRole, password, confirmPassword: confirm
       })
       if (res.data.success) {
-        showSuccess('Registration successful! Please sign in with your credentials.')
-        redirectToLogin(res.data.email || googleUser?.email)
+        showSuccess('Registration successful! Completing your profile...')
+        redirectToProfileCompletion(res.data.email || googleUser?.email, selectedRole)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'Registration failed. Please try again.'))
@@ -212,8 +220,8 @@ export default function Register() {
     try {
       const res = await api.post('/auth/register/verify-otp', { email, otp: otpCode })
       if (res.data.success) {
-        showSuccess('Registration successful! Please sign in with your credentials.')
-        redirectToLogin(email)
+        showSuccess('Registration successful! Completing your profile...')
+        redirectToProfileCompletion(email, selectedRole)
       }
     } catch (err) {
       showError(getErrorMessage(err, 'OTP verification failed.'))

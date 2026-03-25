@@ -32,7 +32,16 @@ router
   .get(authorize('admin'), getAppointments)
   .post(authorize('patient'), bookAppointment);
 
-// Get appointment details
+// Get patient appointments (MUST be before /:id to avoid matching as generic ID)
+router.get('/patient/:patientId', authorize('patient', 'doctor', 'admin'), getPatientAppointments);
+
+// Get doctor appointments (MUST be before /:id to avoid matching as generic ID)
+router.get('/doctor/:doctorId', authorize('doctor', 'admin'), getDoctorAppointments);
+
+// Get available slots for a doctor
+router.get('/doctor/:doctorId/available-slots', getAvailableSlots);
+
+// Get appointment details (MUST be AFTER specific routes like /patient and /doctor)
 router.get('/:id', getAppointmentDetails);
 
 // Start consultation
@@ -49,15 +58,6 @@ router.post('/:id/end', authorize('doctor', 'admin'), endConsultation);
 
 // Upload report
 router.post('/:id/upload-report', protect, authorize('doctor', 'admin'), uploadReport.single('file'), uploadMedicalReport);
-
-// Get patient appointments
-router.get('/patient/:patientId', authorize('patient', 'doctor', 'admin'), getPatientAppointments);
-
-// Get doctor appointments
-router.get('/doctor/:doctorId', authorize('doctor', 'admin'), getDoctorAppointments);
-
-// Get available slots for a doctor
-router.get('/doctor/:doctorId/available-slots', getAvailableSlots);
 
 // Update appointment status
 router.put('/:id', authorize('patient', 'doctor', 'admin'), updateAppointmentStatus);

@@ -159,6 +159,66 @@ exports.registerVerifyOtp = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Complete patient profile after registration (without authentication)
+// @route   POST /api/v1/auth/register/complete-profile
+// @access  Public
+exports.completeRegistrationProfile = asyncHandler(async (req, res) => {
+  const { email, phone, address, gender, bloodGroup, weight, height, dateOfBirth, emergencyContact } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('Email is required');
+  }
+
+  // Find user by email (just registered)
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found. Please complete registration first.');
+  }
+
+  // Only allow patients to use this endpoint
+  if (user.role !== 'patient') {
+    res.status(400);
+    throw new Error('Profile completion is only for patients');
+  }
+
+  // Find or create patient record
+  let patient = await Patient.findOne({ user: user._id });
+  
+  if (!patient) {
+    // Create new patient record
+    patient = await Patient.create({
+      user: user._id,
+      phone: phone || '',
+      address: address || '',
+      gender: gender || 'Male',
+      bloodGroup: bloodGroup || '',
+      weight: weight ? parseInt(weight) : null,
+      height: height ? parseInt(height) : null,
+      dateOfBirth: dateOfBirth || null,
+      emergencyContact: emergencyContact || ''
+    });
+  } else {
+    // Update existing record
+    patient.phone = phone || patient.phone;
+    patient.address = address || patient.address;
+    patient.gender = gender || patient.gender;
+    patient.bloodGroup = bloodGroup || patient.bloodGroup;
+    patient.weight = weight ? parseInt(weight) : patient.weight;
+    patient.height = height ? parseInt(height) : patient.height;
+    patient.dateOfBirth = dateOfBirth || patient.dateOfBirth;
+    patient.emergencyContact = emergencyContact || patient.emergencyContact;
+    await patient.save();
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile completed successfully',
+    data: patient
+  });
+});
+
 // @desc    Register user (legacy, now with password policy + doctor check)
 // @route   POST /api/v1/auth/register
 // @access  Public
