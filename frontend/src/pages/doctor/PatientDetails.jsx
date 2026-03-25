@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Calendar, Clock, Video, FileText, Activity, Users, CheckCircle, Phone, Mail, MapPin, HeartPulse, ExternalLink, Bot } from 'lucide-react'
+import { Calendar, Clock, Video, FileText, Activity, Users, CheckCircle, Phone, Mail, MapPin, HeartPulse, ExternalLink, Bot, Lock } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import ReportSummaryPanel from '../../components/ReportSummaryPanel'
+import PastHistoryModal from '../../components/PastHistoryModal'
+import FullMedicalHistoryModal from '../../components/FullMedicalHistoryModal'
 
 export default function PatientDetails() {
   const { user } = useAuth()
@@ -14,6 +16,8 @@ export default function PatientDetails() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showReportPanel, setShowReportPanel] = useState(false)
+  const [showPastHistory, setShowPastHistory] = useState(false)
+  const [showFullMedicalHistory, setShowFullMedicalHistory] = useState(false)
   const historyRef = useRef(null)
 
   const isDemoDoctor = user?.email === 'sneha@medicare.com' || user?.email === 'suresh@medicare.com'
@@ -146,8 +150,12 @@ export default function PatientDetails() {
     })
   }
 
-  const handleViewHistory = () => {
-    historyRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const handleViewPastHistory = () => {
+    setShowPastHistory(true)
+  }
+
+  const handleViewFullMedicalHistory = () => {
+    setShowFullMedicalHistory(true)
   }
 
   if (loading) {
@@ -215,7 +223,8 @@ export default function PatientDetails() {
                   <span className="text-sm font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg flex items-center gap-1"><HeartPulse size={12} /> {selected.bloodGroup}</span>
                 </div>
                 <div className="mt-4 flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                  <button onClick={handleViewHistory} className="btn-primary py-2 px-5 text-sm flex items-center gap-2"><FileText size={16} /> View Full History</button>
+                  <button onClick={handleViewPastHistory} className="btn-primary py-2 px-5 text-sm flex items-center gap-2"><Clock size={16} /> View Past History</button>
+                  <button onClick={handleViewFullMedicalHistory} className="btn-secondary py-2 px-5 text-sm flex items-center gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"><Lock size={16} /> View Full Medical History</button>
                   <button onClick={handleStartDiagnosis} className="btn-secondary py-2 px-5 text-sm flex items-center gap-2"><Activity size={16} /> Start Diagnosis</button>
                   <button onClick={() => setShowReportPanel(true)} className="btn-secondary py-2 px-5 text-sm flex items-center gap-2 bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"><Bot size={16} /> AI Report Analysis</button>
                 </div>
@@ -360,6 +369,27 @@ export default function PatientDetails() {
         isOpen={showReportPanel} 
         onClose={() => setShowReportPanel(false)}
         patientName={selected?.name}
+      />
+
+      {/* Past History Modal */}
+      <PastHistoryModal
+        patientId={selected?.id}
+        patientName={selected?.name}
+        visitHistory={selected?.visits || []}
+        isOpen={showPastHistory}
+        onClose={() => setShowPastHistory(false)}
+      />
+
+      {/* Full Medical History Modal with Consent */}
+      <FullMedicalHistoryModal
+        patientId={selected?.id}
+        patientName={selected?.name}
+        isOpen={showFullMedicalHistory}
+        onClose={() => setShowFullMedicalHistory(false)}
+        onAccessGranted={() => {
+          // Optional: You can add additional logic here when access is granted
+          console.log('Access granted for full medical history')
+        }}
       />
     </div>
   )
