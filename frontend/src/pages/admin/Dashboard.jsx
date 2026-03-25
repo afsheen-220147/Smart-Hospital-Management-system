@@ -6,6 +6,7 @@ import {
   Activity, TrendingUp
 } from 'lucide-react'
 import api from '../../services/api'
+import AdminDeletionPolls from '../../components/AdminDeletionPolls'
 
 const STATUS_BADGE = {
   pending:     'bg-yellow-100 text-yellow-700',
@@ -106,6 +107,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Deletion Polls Widget */}
+          <div>
+            <AdminDeletionPolls />
           </div>
 
           {/* Appointment status pills */}

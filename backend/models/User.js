@@ -44,6 +44,20 @@ const userSchema = mongoose.Schema(
             type: Date,
             select: false,
         },
+        isDeleted: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+        deletedAt: {
+            type: Date,
+            select: false,
+        },
+        deletionApprovalId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'AdminAction',
+            select: false,
+        },
     },
     {
         timestamps: true,

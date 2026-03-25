@@ -272,6 +272,12 @@ exports.register = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/auth/login
 // @access  Public
 exports.login = asyncHandler(async (req, res) => {
+  // Check if user is deleted
+  const deletedUser = await User.findOne({ email: req.body.email, isDeleted: true }).select('+deletedAt');
+  if (deletedUser) {
+    res.status(403);
+    throw new Error('Your account has been deleted by the hospital administration. Please contact admin@hospital.com for assistance.');
+  }
   const { email, password } = req.body;
   const user = await User.findOne({ email }).select('+password');
   if (!user) { res.status(401); throw new Error('Invalid email or password'); }
