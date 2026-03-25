@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "kill-port 3000 2>/dev/null || true && vite --port 3000",
+    "dev": "npx kill-port 3000 && vite --port 3000",
     "build": "vite build",
     "preview": "vite preview"
   },
