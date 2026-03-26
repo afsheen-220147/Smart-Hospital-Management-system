@@ -201,7 +201,7 @@ export default function VisitHistory() {
             <div className="py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
               <Activity size={48} className="mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-bold text-gray-900 mb-1">No history found</h3>
-              <p className="text-gray-500 text-sm">{searchQuery ? `No visits matching "${searchQuery}"` : "You haven't had any completed medical visits yet."}</p>
+              <p className="text-gray-500 text-sm">{searchQuery ? `No visits matching"${searchQuery}"` :"You haven't had any completed medical visits yet."}</p>
               {searchQuery && <button onClick={() => setSearchQuery('')} className="mt-3 text-blue-600 font-semibold text-sm hover:underline">Clear Search</button>}
             </div>
           )}

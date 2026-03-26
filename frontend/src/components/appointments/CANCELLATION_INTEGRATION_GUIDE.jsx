@@ -35,7 +35,7 @@ export const CancellationIntegrationExamples = () => {
     </p>
     {appointment.cancelReason && (
       <p className="text-xs text-gray-600 truncate italic">
-        "{appointment.cancelReason}"
+      "{appointment.cancelReason}"
       </p>
     )}
   </div>
@@ -94,20 +94,20 @@ export const CancellationIntegrationExamples = () => {
         <h3 className="font-bold mb-2">Appointment Data Format</h3>
         <code className="text-xs">
 {`{
-  "_id": "612a4b123456789abc000001",
-  "status": "cancelled",
-  "patientName": "John Doe",
-  "date": "2026-03-24",
-  "time": "10:00",
+"_id":"612a4b123456789abc000001",
+"status":"cancelled",
+"patientName":"John Doe",
+"date":"2026-03-24",
+"time":"10:00",
   
   // NEW FIELDS - FEATURE 5 CANCELLATION TRACKING
-  "cancelledBy": "doctor",              // patient | doctor | admin | system
-  "cancelReason": "Patient did not attend",
-  "cancelledAt": "2026-03-24T10:30:00Z",
+"cancelledBy":"doctor",              // patient | doctor | admin | system
+"cancelReason":"Patient did not attend",
+"cancelledAt":"2026-03-24T10:30:00Z",
   
   // Existing fields (for backward compatibility)
-  "cancellationReason": "Patient did not attend", 
-  "cancelledAt": "2026-03-24T10:30:00Z",
+"cancellationReason":"Patient did not attend", 
+"cancelledAt":"2026-03-24T10:30:00Z",
   
   // ... other appointment fields
 }`}

@@ -123,7 +123,7 @@ export default function Diagnosis() {
       setTimeout(() => setSaved(false), 6000)
     } catch (err) {
       console.error("Save diagnosis failed:", err)
-      const errMsg = err.response?.data?.message || err.message || "Failed to save record. Please try again."
+      const errMsg = err.response?.data?.message || err.message ||"Failed to save record. Please try again."
       setError(errMsg)
       showError(errMsg)
     } finally {

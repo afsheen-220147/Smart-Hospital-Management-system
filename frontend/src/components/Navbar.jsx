@@ -28,11 +28,11 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5">
           <div className="w-12 h-12 rounded-full overflow-hidden shadow-md group-hover:shadow-lg transition-all duration-300">
-            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover scale-[2.0] translate-y-2" />
+            <img src="/logo2.png" alt="NeoTherapy Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <span className="text-base font-bold text-gray-900">Neo<span className="text-teal-600">Therapy</span></span>
-            <p className="text-[10px] text-gray-400 leading-none">Smart Hospital</p>
+            <p className="text-[10px] text-gray-400 leading-none">on one click</p>
           </div>
         </Link>
 

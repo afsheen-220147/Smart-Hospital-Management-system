@@ -240,7 +240,7 @@ export default function PatientDashboard() {
           <div className="card p-0 overflow-hidden sticky top-6">
             <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
               <div className="w-8 h-8 rounded-full overflow-hidden shadow-inner border border-gray-100">
-                <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover scale-[2.0] translate-y-1" />
+                <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover  translate-y-1" />
               </div>
               <h2 className="font-bold text-gray-900">Health Summary</h2>
             </div>

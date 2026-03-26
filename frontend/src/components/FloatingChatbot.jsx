@@ -34,7 +34,7 @@ const getBasicResponse = (msg) => {
     if (m.includes('time') || m.includes('hours') || m.includes('timing')) return 'Hospital OPD hours: Mon–Fri 8 AM–8 PM, Sat 8 AM–2 PM. Emergency: 24/7.'
     if (m.includes('record') || m.includes('history')) return 'Your medical records can be accessed in Patient Dashboard → Medical Records. All records are secure and private.'
     if (m.includes('prescription') || m.includes('medicine')) return 'Your prescriptions are available in Visit History after each consultation. You can download them as PDF.'
-    return "I'm NeoTherapy AI. I can help with booking appointments, finding doctors, hospital timings, and medical records. Please select an option above."
+    return"I'm NeoTherapy AI. I can help with booking appointments, finding doctors, hospital timings, and medical records. Please select an option above."
 }
 
 export default function FloatingChatbot() {
@@ -49,14 +49,14 @@ export default function FloatingChatbot() {
         { 
             from: 'bot', 
             type: 'text',
-            text: "Hello! I'm NeoTherapy AI. How can I help you today?", 
+            text:"Hello! I'm NeoTherapy AI. How can I help you today?", 
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             showOptions: true 
         }
     ])
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        messagesEndRef.current?.scrollIntoView({ behavior:"smooth" })
     }
 
     useEffect(() => {
@@ -88,7 +88,7 @@ export default function FloatingChatbot() {
           { 
               from: 'bot', 
               type: 'text',
-              text: "Chat cleared. Hello! I'm NeoTherapy AI. How can I help you today?", 
+              text:"Chat cleared. Hello! I'm NeoTherapy AI. How can I help you today?", 
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               showOptions: true 
           }
@@ -110,12 +110,12 @@ export default function FloatingChatbot() {
                 const res = await api.get('/doctors');
                 botResponse.type = 'doctorsList'
                 botResponse.doctors = (res.data?.data || []).slice(0, 3)
-                botResponse.text = "Here are some of our top specialists available:"
+                botResponse.text ="Here are some of our top specialists available:"
             }
             else if (optionId === 'branches' || optionId === 'locations') {
                 botResponse.type = 'locationsList'
                 botResponse.locations = HOSPITALS
-                botResponse.text = "We currently operate in these prominent locations:"
+                botResponse.text ="We currently operate in these prominent locations:"
             }
             else if (optionId === 'distance') {
                 botResponse.showOptions = false; 
@@ -135,7 +135,7 @@ export default function FloatingChatbot() {
                             setMessages(p => [...p, {
                                 from: 'bot',
                                 type: 'text',
-                                text: "I've carefully calculated the distances from your current location using High Accuracy. Please select a hospital for directions:",
+                                text:"I've carefully calculated the distances from your current location using High Accuracy. Please select a hospital for directions:",
                                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 showOptions: false,
                                 showHospitalOptions: true,
@@ -147,7 +147,7 @@ export default function FloatingChatbot() {
                             setMessages(p => [...p, {
                                 from: 'bot',
                                 type: 'text',
-                                text: "Location permission denied or timed out. Please enable location services in your browser to check distances natively.",
+                                text:"Location permission denied or timed out. Please enable location services in your browser to check distances natively.",
                                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 showOptions: true
                             }])
@@ -156,14 +156,14 @@ export default function FloatingChatbot() {
                     );
                     return; 
                 } else {
-                    botResponse.text = "Geolocation is not supported natively by your browser."
+                    botResponse.text ="Geolocation is not supported natively by your browser."
                 }
             }
             else {
                 botResponse.text = getBasicResponse(optionId)
             }
         } catch (err) {
-            botResponse.text = "An internal error occurred while fetching information. Please try again later."
+            botResponse.text ="An internal error occurred while fetching information. Please try again later."
             console.error(err)
         }
 
@@ -185,7 +185,7 @@ export default function FloatingChatbot() {
           return [...newMsgs, {
             from: 'bot',
             type: 'text',
-            text: "Opening Google Maps for native routing directions! Safe travels! Can I assist you with anything else?",
+            text:"Opening Google Maps for native routing directions! Safe travels! Can I assist you with anything else?",
             time,
             showOptions: true
           }]

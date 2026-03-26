@@ -93,7 +93,7 @@ export default function AdminDashboard() {
             {[
               { label: 'Total Patients',     value: stats.totalPatients.toLocaleString(),     Icon: Users,        color: 'bg-blue-50 text-blue-600',    border: 'border-blue-200',   sub: 'registered' },
               { label: 'Total Doctors',      value: stats.totalDoctors.toLocaleString(),      Icon: Stethoscope,  color: 'bg-teal-50 text-teal-600',    border: 'border-teal-200',   sub: 'active' },
-              { label: "Today's Appts",      value: stats.todayAppointments.toLocaleString(), Icon: CalendarCheck, color: 'bg-violet-50 text-violet-600', border: 'border-violet-200', sub: 'scheduled today' },
+              { label:"Today's Appts",      value: stats.todayAppointments.toLocaleString(), Icon: CalendarCheck, color: 'bg-violet-50 text-violet-600', border: 'border-violet-200', sub: 'scheduled today' },
               { label: 'Total Appointments', value: stats.totalAppointments.toLocaleString(), Icon: ClipboardList, color: 'bg-orange-50 text-orange-600', border: 'border-orange-200', sub: 'all time' },
             ].map(s => (
               <div key={s.label} className={`bg-white dark:bg-gray-800 rounded-2xl border ${s.border} dark:border-gray-700 p-5 flex items-center gap-4 hover:shadow-md transition-shadow`}>

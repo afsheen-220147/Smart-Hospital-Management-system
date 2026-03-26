@@ -194,7 +194,7 @@ const AppointmentDetail = ({
                 </p>
                 {appointment.cancelReason && (
                   <p className="text-sm text-red-800 mt-2 italic leading-relaxed">
-                    "{appointment.cancelReason}"
+                  "{appointment.cancelReason}"
                   </p>
                 )}
               </div>
@@ -343,7 +343,7 @@ const AppointmentDetail = ({
               </>
             ) : (
               <div 
-                title={!isToday ? "Consultation allowed only on scheduled date" : "Start now"} // Tooltip for disabled state
+                title={!isToday ?"Consultation allowed only on scheduled date" :"Start now"} // Tooltip for disabled state
                 className="col-span-1 md:w-auto"
               >
                 <button

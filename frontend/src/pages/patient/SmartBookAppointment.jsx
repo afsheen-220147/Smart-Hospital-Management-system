@@ -325,7 +325,7 @@ export default function SmartBookAppointment() {
               type="text"
               value={nlInput}
               onChange={(e) => setNlInput(e.target.value)}
-              placeholder='e.g., "I want to see the doctor tomorrow morning"'
+              placeholder='e.g.,"I want to see the doctor tomorrow morning"'
               className="form-input flex-1 bg-white"
             />
             <button onClick={handleNlParse} className="btn-primary px-4">

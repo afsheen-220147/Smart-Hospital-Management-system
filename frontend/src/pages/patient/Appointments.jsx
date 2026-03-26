@@ -225,7 +225,7 @@ export default function Appointments() {
         </div>
         {isSearching && (
           <p className="text-xs text-gray-500 mt-2">
-            Found {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? 's' : ''} matching "{searchQuery}"
+            Found {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? 's' : ''} matching"{searchQuery}"
           </p>
         )}
       </div>
@@ -333,7 +333,7 @@ export default function Appointments() {
             </h3>
             <p className="text-gray-500 text-sm mb-4">
               {isSearching 
-                ? `No appointments found for doctor "${searchQuery}".`
+                ? `No appointments found for doctor"${searchQuery}".`
                 : `You have no ${filter.toLowerCase()} appointments.`
               }
             </p>
